@@ -1,7 +1,11 @@
+from database import engine, Base
+import models
 from fastapi import FastAPI, Request
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 
+# Create tables automatically
+models.Base.metadata.create_all(bind=engine)
 app = FastAPI(title="Progress Vault")
 
 # Setup Templates (HTML)
