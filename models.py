@@ -1,0 +1,37 @@
+# models.py
+from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, ForeignKey
+from sqlalchemy.orm import relationship
+from datetime import datetime
+from database import Base
+
+
+class Video(Base):
+    __tablename__ = "videos"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, nullable=False)
+    youtube_url = Column(String, nullable=False)
+    thumbnail_url = Column(String, nullable=True)
+    description = Column(Text, nullable=True)
+    upload_date = Column(DateTime, default=datetime.utcnow)
+    is_hidden = Column(Boolean, default=False)
+    view_count = Column(Integer, default=0)
+    category = Column(String, nullable=True)
+    duration = Column(String, nullable=True)  # e.g., "10:23"
+
+    # Relationship
+    comments = relationship("Comment", back_populates="video", cascade="all, delete-orphan")
+
+
+class Comment(Base):
+    __tablename__ = "comments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    video_id = Column(Integer, ForeignKey("videos.id", ondelete="CASCADE"))
+    author_name = Column(String, default="Guest")
+    comment_text = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    is_hidden = Column(Boolean, default=False)
+
+    # Relationship
+    video = relationship("Video", back_populates="comments")

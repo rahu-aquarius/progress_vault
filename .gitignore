@@ -1,5 +1,8 @@
-venv/
-.idea/
-__pycache__/
-*.db
+# .gitignore (add these lines if not present)
 .env
+*.db
+*.sqlite3
+__pycache__/
+*.pyc
+.venv/
+venv/
