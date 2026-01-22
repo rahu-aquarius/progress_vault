@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Progress Vault</title>
+    <style>
+        :root {
+            --hologram-white: #FFFFFF;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", sans-serif;
+            background: #0a0a0a;
+        }
+
+        body::-webkit-scrollbar { display: none; }
+        body { -ms-overflow-style: none; scrollbar-width: none; }
+
+        #bg-layer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+            z-index: 1;
+        }
+
+        #dim-layer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.35);
+            z-index: 2;
+        }
+
+        .screen-container {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            text-align: center;
+            color: white;
+        }
+
+        .guest-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 10;
+            display: none;
+            overflow: hidden;
+        }
+
+        .guest-container.active {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2vh 2vw;
+        }
+
+        .clock-container {
+            margin-bottom: 3vh;
+        }
+
+        .date {
+            font-size: 1.1rem;
+            font-weight: 500;
+            opacity: 0.95;
+            text-shadow: 0 2px 15px rgba(0,0,0,0.9);
+            margin-bottom: 0.3rem;
+            color: white;
+        }
+
+        .time {
+            font-size: 4.5rem;
+            font-weight: 700;
+            text-shadow: 0 3px 25px rgba(0,0,0,0.9);
+            letter-spacing: -0.05em;
+            color: white;
+        }
+
+        .question {
+            font-size: 1.8rem;
+            font-weight: 400;
+            margin-bottom: 2rem;
+            text-shadow: 0 2px 12px rgba(0,0,0,0.9);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 1.5rem;
+            justify-content: center;
+        }
+
+        .mac-btn {
+            background: rgba(255, 255, 255, 0.15);
+            border: none;
+            padding: 0.9rem 3.5rem;
+            border-radius: 30px;
+            color: white;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            backdrop-filter: blur(30px);
+            transition: all 0.2s;
+            box-shadow: 0 4px 18px rgba(0,0,0,0.3);
+        }
+
+        .mac-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: scale(1.03);
+        }
+
+        .auth-screen {
+            display: none;
+        }
+
+        .auth-screen.active {
+            display: block;
+        }
+
+        .admin-input {
+            background: rgba(30, 30, 35, 0.85);
+            border: 1px solid rgba(255,255,255,0.2);
+            padding: 0.9rem 1.7rem;
+            border-radius: 12px;
+            color: white;
+            text-align: center;
+            font-size: 1.1rem;
+            width: 280px;
+            outline: none;
+            backdrop-filter: blur(20px);
+        }
+
+        .password-boxes {
+            display: flex;
+            gap: 0.6rem;
+            margin: 3vh 0;
+            justify-content: center;
+        }
+
+        .pass-box {
+            width: 3.2rem;
+            height: 3.8rem;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            color: var(--hologram-white);
+            font-family: -apple-system, "SF Pro Display", "Inter", sans-serif;
+            font-size: 1.9rem;
+            font-weight: 600;
+            text-align: center;
+            outline: none;
+            border-radius: 10px;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(15px);
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+            pointer-events: none;
+            transition: none;
+        }
+
+        #hologram-keyboard {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5vh;
+            margin: 0 auto 2vh auto;
+            max-width: 90vw;
+            transition: opacity 0.3s ease;
+        }
+
+        #hologram-keyboard.locked {
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        #hologram-keyboard .holo-row {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        #hologram-keyboard .holo-key {
+            width: 4.2rem;
+            height: 4.2rem;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            color: var(--hologram-white);
+            font-size: 1.2rem;
+            font-weight: 500;
+            font-family: -apple-system, "SF Pro Display", sans-serif;
+            letter-spacing: 0.05em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            backdrop-filter: blur(15px);
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+            text-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+            user-select: none;
+        }
+
+        #hologram-keyboard .holo-key:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.6);
+            box-shadow: 0 0 25px rgba(255, 255, 255, 0.5);
+            text-shadow: 0 0 12px rgba(255, 255, 255, 0.8);
+            transform: translateY(-2px) scale(1.03);
+        }
+
+        #hologram-keyboard .holo-key:active,
+        #hologram-keyboard .holo-key.pulse {
+            background: rgba(255, 255, 255, 0.25);
+            color: #FFFFFF;
+            border-color: var(--hologram-white);
+            transform: scale(1.05);
+            box-shadow: 0 0 35px rgba(255, 255, 255, 0.8), 0 0 60px rgba(255, 255, 255, 0.5);
+        }
+
+        #hologram-keyboard .holo-key.functional {
+            width: 6.3rem;
+            font-size: 0.85rem;
+            letter-spacing: 0.1em;
+        }
+
+        #hologram-keyboard .holo-key.spacebar {
+            width: 16rem;
+            font-size: 0.85rem;
+        }
+
+        .footer-controls {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: center;
+            gap: 2rem;
+            margin-top: 2vh;
+        }
+
+        .timer-display {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 0.7rem 2rem;
+            border-radius: 25px;
+            font-size: 1.1rem;
+            color: var(--hologram-white);
+            font-family: -apple-system, "SF Pro Display", sans-serif;
+            font-weight: 500;
+            letter-spacing: 0.05em;
+            backdrop-filter: blur(15px);
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+            text-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
+            pointer-events: none;
+        }
+
+        .back-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            padding: 0.7rem 2.5rem;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            color: white;
+            font-family: -apple-system, "SF Pro Display", sans-serif;
+            backdrop-filter: blur(15px);
+            box-shadow: 0 0 12px rgba(255, 255, 255, 0.2);
+            transition: all 0.2s;
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.4);
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+            transform: scale(1.03);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @media (max-height: 750px) {
+            .time {
+                font-size: 3.5rem;
+            }
+            #hologram-keyboard .holo-key {
+                width: 3.5rem;
+                height: 3.5rem;
+                font-size: 1rem;
+            }
+            #hologram-keyboard .holo-key.functional {
+                width: 5.25rem;
+                font-size: 0.75rem;
+            }
+            #hologram-keyboard .holo-key.spacebar {
+                width: 13rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="bg-layer"></div>
+    <div id="dim-layer"></div>
+
+    <div class="screen-container" id="centerContainer">
+        <div class="clock-container">
+            <div class="date" id="dateDisplay">Loading...</div>
+            <div class="time" id="timeDisplay">00:00</div>
+        </div>
+        <div id="screen-landing">
+            <div class="question">Are you Samip?</div>
+            <div class="btn-group">
+                <button class="mac-btn" onclick="showAdmin()">YES</button>
+                <button class="mac-btn" onclick="showGuest()">NO</button>
+            </div>
+        </div>
+
+        <div id="screen-admin" class="auth-screen">
+            <div class="question">Enter Admin Password</div>
+            <form onsubmit="loginAdmin(event)">
+                <input type="password" id="adminPass" class="admin-input" placeholder="Password" autofocus>
+            </form>
+            <div class="timer-display" id="timerAdmin" style="margin-top: 2rem;">60s</div>
+            <div class="back-btn" onclick="goBack()" style="margin-top: 1.5rem;">Cancel</div>
+        </div>
+    </div>
+
+    <div class="guest-container" id="guestContainer">
+        <div class="clock-container">
+            <div class="date" id="dateDisplay2">Loading...</div>
+            <div class="time" id="timeDisplay2">00:00</div>
+        </div>
+
+        <div class="password-boxes" id="passwordBoxes"></div>
+
+        <div id="hologram-keyboard">
+            <div class="holo-row">
+                <div class="holo-key" data-key="0" onclick="typeKey('0')">0</div>
+                <div class="holo-key" data-key="1" onclick="typeKey('1')">1</div>
+                <div class="holo-key" data-key="2" onclick="typeKey('2')">2</div>
+                <div class="holo-key" data-key="3" onclick="typeKey('3')">3</div>
+                <div class="holo-key" data-key="4" onclick="typeKey('4')">4</div>
+                <div class="holo-key" data-key="5" onclick="typeKey('5')">5</div>
+                <div class="holo-key" data-key="6" onclick="typeKey('6')">6</div>
+                <div class="holo-key" data-key="7" onclick="typeKey('7')">7</div>
+                <div class="holo-key" data-key="8" onclick="typeKey('8')">8</div>
+                <div class="holo-key" data-key="9" onclick="typeKey('9')">9</div>
+            </div>
+            <div class="holo-row">
+                <div class="holo-key" data-key="s" onclick="typeKey('S')">S</div>
+                <div class="holo-key" data-key="a" onclick="typeKey('A')">A</div>
+                <div class="holo-key" data-key="m" onclick="typeKey('M')">M</div>
+                <div class="holo-key" data-key="i" onclick="typeKey('I')">I</div>
+                <div class="holo-key" data-key="p" onclick="typeKey('P')">P</div>
+                <div class="holo-key" data-key="-" onclick="typeKey('-')">-</div>
+                <div class="holo-key" data-key="a" onclick="typeKey('A')">A</div>
+                <div class="holo-key" data-key="r" onclick="typeKey('R')">R</div>
+                <div class="holo-key" data-key="y" onclick="typeKey('Y')">Y</div>
+                <div class="holo-key" data-key="a" onclick="typeKey('A')">A</div>
+                <div class="holo-key" data-key="l" onclick="typeKey('L')">L</div>
+            </div>
+            <div class="holo-row">
+                <div class="holo-key" data-key="." onclick="typeKey('.')">.</div>
+                <div class="holo-key functional" data-key="Backspace" onclick="backspace()">DELETE</div>
+                <div class="holo-key functional" data-key="Enter" onclick="submitGuest()">ENTER</div>
+                <div class="holo-key spacebar" onclick="typeKey(' ')">SPACE</div>
+            </div>
+        </div>
+
+        <div class="footer-controls">
+            <div class="timer-display" id="timerGuest">60s remaining</div>
+            <div class="back-btn" onclick="goBack()">Cancel</div>
+        </div>
+    </div>
+
+
+        <script>
+        function updateClock() {
+            const now = new Date();
+            const days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+            const months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+            const dateText = `${days[now.getDay()]}, ${months[now.getMonth()]} ${now.getDate()}`;
+            const h = now.getHours(), m = now.getMinutes();
+            const timeText = `${h}:${m<10?'0':''}${m}`;
+            document.getElementById("dateDisplay").textContent = dateText;
+            document.getElementById("timeDisplay").textContent = timeText;
+            document.getElementById("dateDisplay2").textContent = dateText;
+            document.getElementById("timeDisplay2").textContent = timeText;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        const TIMERKEY = "loginTimerEnd";
+        const CODEKEY = "sessionCode";
+        const FLASHKEY = "hasFlashed";
+        const FAILED_FLAG = "cameFromFailed";
+
+        window.addEventListener('pageshow', function(event) {
+            if (event.persisted || sessionStorage.getItem(FAILED_FLAG) === "true") {
+                localStorage.removeItem(TIMERKEY);
+                localStorage.removeItem(CODEKEY);
+                localStorage.removeItem(FLASHKEY);
+                sessionStorage.removeItem(FAILED_FLAG);
+                location.reload();
+            }
+        });
+
+        let timerInterval;
+        let hasFlashed = localStorage.getItem(FLASHKEY) === "true";
+
+        async function fetchChallengeCode() {
+            let code = localStorage.getItem(CODEKEY);
+
+            if (!code) {
+                try {
+                    const response = await fetch("/api/get-challenge");
+                    const data = await response.json();
+                    code = data.code;
+                    localStorage.setItem(CODEKEY, code);
+                } catch (error) {
+                    console.error("Failed to fetch code:", error);
+                    code = "SAMIPRY";
+                }
+            }
+
+            return code;
+        }
+
+        function startTimer() {
+            let endTime = localStorage.getItem(TIMERKEY);
+
+            if (!endTime) {
+                endTime = Date.now() + 60000;
+                localStorage.setItem(TIMERKEY, endTime);
+            } else {
+                endTime = parseInt(endTime);
+            }
+
+            function updateTimer() {
+                const remaining = Math.max(0, Math.floor((endTime - Date.now()) / 1000));
+                document.getElementById("timerAdmin").textContent = `${remaining}s`;
+                document.getElementById("timerGuest").textContent = `${remaining}s remaining`;
+
+                if (remaining <= 0) {
+                    clearInterval(timerInterval);
+                    localStorage.removeItem(TIMERKEY);
+                    localStorage.removeItem(CODEKEY);
+                    localStorage.removeItem(FLASHKEY);
+                    sessionStorage.setItem(FAILED_FLAG, "true");
+                    window.location.href = "/failed-login";
+                }
+            }
+
+            clearInterval(timerInterval);
+            updateTimer();
+            timerInterval = setInterval(updateTimer, 1000);
+        }
+
+        startTimer();
+
+        function createInputBoxes() {
+            const container = document.getElementById("passwordBoxes");
+            container.innerHTML = "";
+
+            for (let i = 0; i < 8; i++) {
+                const box = document.createElement("input");
+                box.className = "pass-box";
+                box.type = "text";
+                box.maxLength = "1";
+                box.readOnly = true;
+                container.appendChild(box);
+            }
+        }
+
+        createInputBoxes();
+
+        function showAdmin() {
+            document.getElementById("screen-landing").classList.add("hidden");
+            document.getElementById("screen-admin").classList.add("active");
+            document.getElementById("adminPass").focus();
+        }
+
+        async function showGuest() {
+            document.getElementById("centerContainer").classList.add("hidden");
+            document.getElementById("guestContainer").classList.add("active");
+
+            if (!hasFlashed) {
+                await initializeFlashPhase();
+            } else {
+                enablePhysicalKeyboard();
+            }
+        }
+
+        function goBack() {
+            document.getElementById("screen-admin").classList.remove("active");
+            document.getElementById("guestContainer").classList.remove("active");
+            document.getElementById("screen-landing").classList.remove("hidden");
+            document.getElementById("centerContainer").classList.remove("hidden");
+
+            userInput = [];
+            createInputBoxes();
+            disablePhysicalKeyboard();
+        }
+
+        let userInput = [];
+        let secretCode = "";
+        let maskTimeouts = [];
+
+        // FLASH: Show ABCDE_FG (normal order, 6th empty)
+        async function initializeFlashPhase() {
+            secretCode = await fetchChallengeCode(); // e.g., "ABCDEFG"
+            const boxes = document.querySelectorAll(".pass-box");
+            const keyboard = document.getElementById("hologram-keyboard");
+            const timerDisplay = document.getElementById("timerGuest");
+
+            keyboard.classList.add("locked");
+            disablePhysicalKeyboard();
+            document.body.style.cursor = "wait";
+
+            // Flash: A B C D E _ F G (boxes 0-4, skip 5, then 6-7)
+            let codeIndex = 0;
+            for (let i = 0; i < 8; i++) {
+                if (i !== 5) {
+                    boxes[i].value = secretCode[codeIndex];
+                    codeIndex++;
+                }
+            }
+            boxes[5].value = "";
+
+            let flashCountdown = 3;
+            timerDisplay.textContent = `Flash: ${flashCountdown}s`;
+
+            const flashInterval = setInterval(() => {
+                flashCountdown--;
+                if (flashCountdown > 0) {
+                    timerDisplay.textContent = `Flash: ${flashCountdown}s`;
+                } else {
+                    clearInterval(flashInterval);
+
+                    createInputBoxes();
+                    keyboard.classList.remove("locked");
+                    enablePhysicalKeyboard();
+                    document.body.style.cursor = "default";
+
+                    hasFlashed = true;
+                    localStorage.setItem(FLASHKEY, "true");
+
+                    const endTime = parseInt(localStorage.getItem(TIMERKEY));
+                    const remaining = Math.max(0, Math.floor((endTime - Date.now()) / 1000));
+                    timerDisplay.textContent = `${remaining}s remaining`;
+
+                    console.log("✅ Type REVERSED! Format: GFEDC.BA");
+                }
+            }, 1000);
+        }
+
+        // TYPING: User must type GFEDC.BA (REVERSED with dot at position 6)
+        function typeKey(char) {
+            const boxes = document.querySelectorAll(".pass-box");
+            const currentPos = userInput.length;
+
+            if (currentPos >= 8) return;
+
+            // REVERSE VALIDATION LOGIC
+            // If secretCode = "ABCDEFG"
+            // User types: G F E D C . B A
+            // Position 0 = G (secretCode[6])
+            // Position 1 = F (secretCode[5])
+            // Position 2 = E (secretCode[4])
+            // Position 3 = D (secretCode[3])
+            // Position 4 = C (secretCode[2])
+            // Position 5 = . (dot)
+            // Position 6 = B (secretCode[1])
+            // Position 7 = A (secretCode[0])
+
+            if (currentPos === 5) {
+                // 6th position MUST be dot
+                if (char !== ".") {
+                    sessionStorage.setItem(FAILED_FLAG, "true");
+                    window.location.href = "/failed-login";
+                    return;
+                }
+            } else {
+                // Reverse index mapping
+                let secretIndex;
+                if (currentPos < 5) {
+                    // Positions 0-4 map to secretCode[6,5,4,3,2]
+                    secretIndex = 6 - currentPos;
+                } else {
+                    // Positions 6-7 map to secretCode[1,0]
+                    secretIndex = 7 - currentPos;
+                }
+
+                if (char !== secretCode[secretIndex]) {
+                    sessionStorage.setItem(FAILED_FLAG, "true");
+                    window.location.href = "/failed-login";
+                    return;
+                }
+            }
+
+            // Character is correct
+            userInput.push(char);
+            boxes[currentPos].value = char;
+
+            if (maskTimeouts[currentPos]) {
+                clearTimeout(maskTimeouts[currentPos]);
+            }
+
+            maskTimeouts[currentPos] = setTimeout(() => {
+                boxes[currentPos].value = "●";
+            }, 1000);
+
+            if (userInput.length === 8) {
+                localStorage.removeItem(TIMERKEY);
+                localStorage.removeItem(CODEKEY);
+                localStorage.removeItem(FLASHKEY);
+                window.location.href = "/success";
+            }
+        }
+
+        function backspace() {
+            if (userInput.length === 0) return;
+
+            const boxes = document.querySelectorAll(".pass-box");
+            const currentPos = userInput.length - 1;
+
+            if (maskTimeouts[currentPos]) {
+                clearTimeout(maskTimeouts[currentPos]);
+                maskTimeouts[currentPos] = null;
+            }
+
+            userInput.pop();
+            boxes[currentPos].value = "";
+        }
+
+        function handlePhysicalKey(e) {
+            const key = e.key.toLowerCase();
+            const virtualKey = document.querySelector(`#hologram-keyboard .holo-key[data-key="${key}"]`);
+
+            if (virtualKey) {
+                virtualKey.classList.add("pulse");
+                setTimeout(() => virtualKey.classList.remove("pulse"), 200);
+            }
+
+            if (key === "backspace") {
+                e.preventDefault();
+                backspace();
+            } else if (key === "enter") {
+                e.preventDefault();
+                submitGuest();
+            } else if (key === ".") {
+                e.preventDefault();
+                typeKey(".");
+            } else if (key === "-" || key === " ") {
+                e.preventDefault();
+                typeKey(key);
+            } else if (/[0-9]/.test(key)) {
+                e.preventDefault();
+                typeKey(key);
+            } else if (/[a-z]/i.test(key)) {
+                e.preventDefault();
+                typeKey(key.toUpperCase());
+            }
+        }
+
+        let physicalKeyboardEnabled = false;
+
+        function enablePhysicalKeyboard() {
+            if (!physicalKeyboardEnabled) {
+                window.addEventListener("keydown", handlePhysicalKey);
+                physicalKeyboardEnabled = true;
+            }
+        }
+
+        function disablePhysicalKeyboard() {
+            window.removeEventListener("keydown", handlePhysicalKey);
+            physicalKeyboardEnabled = false;
+        }
+
+        function submitGuest() {
+            console.log("Auto-validates per character");
+        }
+
+        async function loginAdmin(e) {
+            e.preventDefault();
+            const pass = document.getElementById("adminPass").value;
+
+            const form = new FormData();
+            form.append("password", pass);
+
+            try {
+                const r = await fetch("/login-admin", {
+                    method: "POST",
+                    body: form
+                });
+
+                if (r.redirected) {
+                    localStorage.removeItem(TIMERKEY);
+                    localStorage.removeItem(CODEKEY);
+                    localStorage.removeItem(FLASHKEY);
+                    window.location.href = r.url;
+                }
+            } catch (error) {
+                console.log("Login error:", error);
+            }
+        }
+    </script>
+
+
+</body>
+</html>
