@@ -17,9 +17,8 @@ class Video(Base):
     is_hidden = Column(Boolean, default=False)
     view_count = Column(Integer, default=0)
     category = Column(String, nullable=True)
-    duration = Column(String, nullable=True)  # e.g., "10:23"
+    duration = Column(String, nullable=True)
 
-    # Relationship
     comments = relationship("Comment", back_populates="video", cascade="all, delete-orphan")
 
 
@@ -33,5 +32,16 @@ class Comment(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     is_hidden = Column(Boolean, default=False)
 
-    # Relationship
     video = relationship("Video", back_populates="comments")
+
+
+# NEW: Settings table for guest access control
+class Settings(Base):
+    __tablename__ = "settings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    key = Column(String, unique=True, nullable=False)
+    value = Column(String, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
