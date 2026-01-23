@@ -172,6 +172,159 @@
             color: #e0e0e0;
         }
 
+        /* Password Change Section */
+        .password-section {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .password-section h2 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #e0e0e0;
+            margin-bottom: 1.5rem;
+        }
+
+        .password-form {
+            display: grid;
+            gap: 1.2rem;
+            max-width: 500px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .form-group label {
+            font-size: 0.9rem;
+            color: #b0b0b0;
+        }
+
+        .form-group input[type="password"],
+        .form-group input[type="text"] {
+            padding: 0.8rem 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: #e0e0e0;
+            font-size: 0.95rem;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        .form-group input[type="password"]:focus,
+        .form-group input[type="text"]:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+
+        /* Password Input Wrapper with Eye Icon */
+        .password-input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .password-input-wrapper input {
+            flex: 1;
+            padding-right: 3rem;
+        }
+
+        .toggle-password {
+            position: absolute;
+            right: 0.8rem;
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            color: #888;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .toggle-password:hover {
+            color: #e0e0e0;
+            transform: scale(1.1);
+        }
+
+        .toggle-password:active {
+            transform: scale(0.95);
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            padding: 1rem;
+            background: rgba(255, 200, 0, 0.05);
+            border: 1px solid rgba(255, 200, 0, 0.3);
+            border-radius: 8px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .checkbox-group label {
+            color: #ffcc00;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .btn-change-password {
+            padding: 0.8rem 1.5rem;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: #d0d0d0;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .btn-change-password:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.35);
+            color: #ffffff;
+        }
+
+        .btn-change-password:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .error-message {
+            padding: 0.8rem;
+            background: rgba(255, 68, 68, 0.1);
+            border: 1px solid rgba(255, 68, 68, 0.3);
+            border-radius: 8px;
+            color: #ff4444;
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        .success-message {
+            padding: 0.8rem;
+            background: rgba(68, 255, 68, 0.1);
+            border: 1px solid rgba(68, 255, 68, 0.3);
+            border-radius: 8px;
+            color: #44ff44;
+            font-size: 0.9rem;
+            display: none;
+        }
+
         /* Section Title */
         .section-title {
             font-size: 1.3rem;
@@ -314,6 +467,10 @@
             .video-grid {
                 grid-template-columns: 1fr;
             }
+
+            .password-form {
+                max-width: 100%;
+            }
         }
     </style>
 </head>
@@ -358,6 +515,52 @@
         </div>
     </div>
 
+    <!-- Password Change Section -->
+    <div class="password-section">
+        <h2>Change Admin Password</h2>
+        <form class="password-form" id="passwordForm" onsubmit="changePassword(event)">
+            <div class="form-group">
+                <label for="currentPassword">Current Password</label>
+                <div class="password-input-wrapper">
+                    <input type="password" id="currentPassword" name="currentPassword" required>
+                    <button type="button" class="toggle-password" onclick="togglePasswordVisibility('currentPassword')">
+                        👁️
+                    </button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="newPassword">New Password (min 8 characters)</label>
+                <div class="password-input-wrapper">
+                    <input type="password" id="newPassword" name="newPassword" required minlength="8">
+                    <button type="button" class="toggle-password" onclick="togglePasswordVisibility('newPassword')">
+                        👁️
+                    </button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="confirmPassword">Confirm New Password</label>
+                <div class="password-input-wrapper">
+                    <input type="password" id="confirmPassword" name="confirmPassword" required minlength="8">
+                    <button type="button" class="toggle-password" onclick="togglePasswordVisibility('confirmPassword')">
+                        👁️
+                    </button>
+                </div>
+            </div>
+
+            <div class="checkbox-group">
+                <input type="checkbox" id="confirmCheckbox" required>
+                <label for="confirmCheckbox">⚠️ Please take a picture on your phone to NOT lose this</label>
+            </div>
+
+            <div class="error-message" id="errorMessage"></div>
+            <div class="success-message" id="successMessage"></div>
+
+            <button type="submit" class="btn-change-password">Change Password</button>
+        </form>
+    </div>
+
     <!-- Videos Section -->
     <div class="section-title">Video Management</div>
 
@@ -400,62 +603,66 @@
     {% endif %}
 
     <script>
-
         // CRITICAL: Verify authentication on page load
-    async function verifyAuth() {
-        try {
-            const response = await fetch('/api/verify-auth', {
-                credentials: 'include'
-            });
+        async function verifyAuth() {
+            try {
+                const response = await fetch('/api/verify-auth', {
+                    credentials: 'include'
+                });
 
-            if (response.status === 401 || !response.ok) {
-                console.log('Not authenticated, redirecting to login');
-                window.location.replace('/');
-                return false;
-            }
-
-            const data = await response.json();
-            if (!data.authenticated || data.role !== 'admin') {
-                window.location.replace('/');
-                return false;
-            }
-
-            return true;
-        } catch (error) {
-            console.error('Auth verification failed:', error);
-            window.location.replace('/');
-            return false;
-        }
-    }
-
-    // Run auth check immediately
-    verifyAuth();
-
-    // Prevent back button issues
-    window.history.pushState(null, '', window.location.href);
-    window.addEventListener('popstate', function() {
-        window.history.pushState(null, '', window.location.href);
-        if (confirm('Are you sure you want to leave the admin dashboard?')) {
-            window.location.href = '/logout';
-        }
-    });
-
-    // Prevent caching
-    window.onpageshow = function(event) {
-        if (event.persisted) {
-            verifyAuth().then(isValid => {
-                if (!isValid) {
+                if (response.status === 401 || !response.ok) {
+                    console.log('Not authenticated, redirecting to login');
                     window.location.replace('/');
+                    return false;
                 }
-            });
+
+                const data = await response.json();
+                if (!data.authenticated || data.role !== 'admin') {
+                    window.location.replace('/');
+                    return false;
+                }
+
+                return true;
+            } catch (error) {
+                console.error('Auth verification failed:', error);
+                window.location.replace('/');
+                return false;
+            }
         }
-    };
 
-        // Existing toggle, delete, hide functions...
+        // Run auth check immediately
+        verifyAuth();
 
-        // ADD THIS AT THE END - Prevent back button issues
+        // Auto-logout timer - checks every 2 seconds
+let autoLogoutTimer;
+function startAutoLogoutCheck() {
+    if (autoLogoutTimer) clearInterval(autoLogoutTimer);
+    autoLogoutTimer = setInterval(async () => {
+        try {
+            const response = await fetch('/api/check-session', { credentials: 'include' });
+            if (response.status === 401 || !response.ok) {
+                clearInterval(autoLogoutTimer);
+                alert('Your session has expired. Please login again.');
+                window.location.replace('/logout');
+            } else {
+                const data = await response.json();
+                if (!data.valid) {
+                    clearInterval(autoLogoutTimer);
+                    alert('Your session has expired. Please login again.');
+                    window.location.replace('/logout');
+                }
+                console.log(`Session expires in ${data.expires_in} seconds`);
+            }
+        } catch (error) {
+            clearInterval(autoLogoutTimer);
+            window.location.replace('/logout');
+        }
+    }, 2000);
+}
+startAutoLogoutCheck();
+
+        // Prevent back button issues
         window.history.pushState(null, '', window.location.href);
-
         window.addEventListener('popstate', function() {
             window.history.pushState(null, '', window.location.href);
             if (confirm('Are you sure you want to leave the admin dashboard?')) {
@@ -466,9 +673,92 @@
         // Prevent caching
         window.onpageshow = function(event) {
             if (event.persisted) {
-                window.location.reload();
+                verifyAuth().then(isValid => {
+                    if (!isValid) {
+                        window.location.replace('/');
+                    }
+                });
             }
         };
+
+        // Toggle password visibility (SHOW/HIDE)
+        function togglePasswordVisibility(fieldId) {
+            const field = document.getElementById(fieldId);
+            const button = field.parentElement.querySelector('.toggle-password');
+
+            if (field.type === 'password') {
+                field.type = 'text';
+                button.textContent = '🙈';  // Hide icon
+            } else {
+                field.type = 'password';
+                button.textContent = '👁️';  // Show icon
+            }
+        }
+
+        // Change Password Function
+        async function changePassword(e) {
+            e.preventDefault();
+
+            const errorMsg = document.getElementById('errorMessage');
+            const successMsg = document.getElementById('successMessage');
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const confirmCheckbox = document.getElementById('confirmCheckbox').checked;
+
+            // Reset messages
+            errorMsg.style.display = 'none';
+            successMsg.style.display = 'none';
+
+            // Validate passwords match
+            if (newPassword !== confirmPassword) {
+                errorMsg.textContent = 'New passwords do not match!';
+                errorMsg.style.display = 'block';
+                return;
+            }
+
+            // Validate checkbox
+            if (!confirmCheckbox) {
+                errorMsg.textContent = 'You must confirm by checking the box!';
+                errorMsg.style.display = 'block';
+                return;
+            }
+
+            try {
+                const formData = new FormData();
+                formData.append('current_password', currentPassword);
+                formData.append('new_password', newPassword);
+                formData.append('confirm_checkbox', confirmCheckbox ? 'true' : 'false');
+
+                const response = await fetch('/admin/change-password', {
+                    method: 'POST',
+                    credentials: 'include',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    successMsg.textContent = data.message;
+                    successMsg.style.display = 'block';
+
+                    // Clear form
+                    document.getElementById('passwordForm').reset();
+
+                    // Logout after 3 seconds
+                    setTimeout(() => {
+                        window.location.href = '/logout';
+                    }, 3000);
+                } else {
+                    errorMsg.textContent = data.error || 'Failed to change password';
+                    errorMsg.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Password change failed:', error);
+                errorMsg.textContent = 'An error occurred. Please try again.';
+                errorMsg.style.display = 'block';
+            }
+        }
 
         // Toggle guest access
         document.getElementById('guestToggle').addEventListener('change', async (e) => {
@@ -483,7 +773,6 @@
                 statusText.textContent = data.enabled ? 'Enabled' : 'Disabled';
                 statusText.className = data.enabled ? 'enabled' : 'disabled';
 
-                // Update stat card
                 const statValue = document.querySelector('.stat-card:nth-child(3) .stat-value');
                 statValue.textContent = data.enabled ? 'ON' : 'OFF';
                 statValue.style.color = data.enabled ? '#44ff44' : '#ff4444';

@@ -217,6 +217,46 @@
         // Run auth check immediately
         verifyAuth();
 
+        // Auto-logout timer - checks every 2 seconds
+let autoLogoutTimer;
+
+function startAutoLogoutCheck() {
+    if (autoLogoutTimer) {
+        clearInterval(autoLogoutTimer);
+    }
+
+    autoLogoutTimer = setInterval(async () => {
+        try {
+            const response = await fetch('/api/check-session', {
+                credentials: 'include'
+            });
+
+            if (response.status === 401 || !response.ok) {
+                console.log('Session expired - logging out');
+                clearInterval(autoLogoutTimer);
+                alert('Your session has expired. Please login again.');
+                window.location.replace('/logout');
+            } else {
+                const data = await response.json();
+                if (!data.valid) {
+                    console.log('Session invalid - logging out');
+                    clearInterval(autoLogoutTimer);
+                    alert('Your session has expired. Please login again.');
+                    window.location.replace('/logout');
+                }
+                console.log(`Session expires in ${data.expires_in} seconds`);
+            }
+        } catch (error) {
+            console.error('Session check failed:', error);
+            clearInterval(autoLogoutTimer);
+            window.location.replace('/logout');
+        }
+    }, 2000);
+}
+
+startAutoLogoutCheck();
+
+
         // Prevent back button - show logout confirmation
         window.history.pushState(null, '', window.location.href);
 
@@ -249,4 +289,5 @@
     </script>
 </body>
 </html>
+
 
