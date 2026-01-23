@@ -5,11 +5,13 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 import random
 from datetime import timedelta
-
+from passlib.context import CryptContext
 from database import engine, get_db, Base
 from models import Video, Comment, Settings
 from config import settings
 from auth import create_access_token, verify_token
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # Create tables
 Base.metadata.create_all(bind=engine)
@@ -99,8 +101,20 @@ async def get_challenge():
 
 
 @app.post("/login-admin")
-async def login_admin(password: str = Form(...)):
-    if password == settings.ADMIN_PASSWORD:
+async def login_admin(password: str = Form(...), db: Session = Depends(get_db)):
+    # Check if password was changed in database (takes priority)
+    db_password = None
+    try:
+        db_password_setting = db.query(Settings).filter(Settings.key == "admin_password").first()
+        if db_password_setting:
+            db_password = db_password_setting.value
+    except:
+        pass
+
+    # Use database password if exists, otherwise use .env password
+    correct_password = db_password if db_password else settings.ADMIN_PASSWORD
+
+    if password == correct_password:
         token = create_access_token(
             data={"sub": "admin", "role": "admin"},
             expires_delta=timedelta(minutes=5)
@@ -158,6 +172,56 @@ async def logout():
 
 
 # ============= PROTECTED ROUTES - ADMIN =============
+
+# Add this new route with other admin routes
+
+@app.post("/admin/change-password")
+async def change_password(
+        current_password: str = Form(...),
+        new_password: str = Form(...),
+        confirm_checkbox: str = Form(...),
+        db: Session = Depends(get_db),
+        user=Depends(get_current_user)
+):
+    if not require_auth(user, required_role="admin"):
+        return JSONResponse(status_code=401, content={"error": "Unauthorized"})
+
+    # Get current password (check database first, then .env)
+    db_password_setting = db.query(Settings).filter(Settings.key == "admin_password").first()
+    current_correct_password = db_password_setting.value if db_password_setting else settings.ADMIN_PASSWORD
+
+    # Verify current password
+    if current_password != current_correct_password:
+        return JSONResponse(status_code=400, content={
+            "success": False,
+            "error": "Current password is incorrect"
+        })
+
+    # Verify checkbox was ticked
+    if confirm_checkbox != "true":
+        return JSONResponse(status_code=400, content={
+            "success": False,
+            "error": "You must confirm by checking the box"
+        })
+
+    # Validate new password (minimum 8 characters)
+    if len(new_password) < 8:
+        return JSONResponse(status_code=400, content={
+            "success": False,
+            "error": "New password must be at least 8 characters"
+        })
+
+    # Store new password in database settings table
+    set_setting(db, "admin_password", new_password)
+
+    # Update in-memory settings (so it takes effect immediately)
+    settings.ADMIN_PASSWORD = new_password
+
+    return {
+        "success": True,
+        "message": "Password changed successfully. You will need to login again with the new password."
+    }
+
 
 @app.get("/admin/dashboard", response_class=HTMLResponse)
 async def admin_dashboard(
@@ -221,6 +285,28 @@ async def verify_auth(user=Depends(get_current_user)):
         "role": user.get("role"),
         "expires_at": user.get("exp")
     }
+
+
+@app.get("/api/check-session")
+async def check_session(user=Depends(get_current_user)):
+    if not user:
+        return JSONResponse(
+            status_code=401,
+            content={"valid": False}
+        )
+
+    # Check if token is about to expire (within 5 seconds)
+    import time
+    exp_timestamp = user.get("exp", 0)
+    current_timestamp = time.time()
+
+    if current_timestamp >= exp_timestamp:
+        return JSONResponse(
+            status_code=401,
+            content={"valid": False}
+        )
+
+    return {"valid": True, "expires_in": int(exp_timestamp - current_timestamp)}
 
 
 # ============= ADMIN API ROUTES =============
