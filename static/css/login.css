@@ -1,0 +1,308 @@
+/* login.css */
+:root {
+    --hologram-white: #FFFFFF;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", sans-serif;
+    background: #0a0a0a;
+}
+
+body::-webkit-scrollbar { display: none; }
+body { -ms-overflow-style: none; scrollbar-width: none; }
+
+#bg-layer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+    z-index: 1;
+}
+
+#dim-layer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.35);
+    z-index: 2;
+}
+
+.screen-container {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 10;
+    text-align: center;
+    color: white;
+}
+
+.guest-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 10;
+    display: none;
+    overflow: hidden;
+}
+
+.guest-container.active {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2vh 2vw;
+}
+
+.clock-container {
+    margin-bottom: 3vh;
+}
+
+.date {
+    font-size: 1.1rem;
+    font-weight: 500;
+    opacity: 0.95;
+    text-shadow: 0 2px 15px rgba(0,0,0,0.9);
+    margin-bottom: 0.3rem;
+    color: white;
+}
+
+.time {
+    font-size: 4.5rem;
+    font-weight: 700;
+    text-shadow: 0 3px 25px rgba(0,0,0,0.9);
+    letter-spacing: -0.05em;
+    color: white;
+}
+
+.question {
+    font-size: 1.8rem;
+    font-weight: 400;
+    margin-bottom: 2rem;
+    text-shadow: 0 2px 12px rgba(0,0,0,0.9);
+}
+
+.btn-group {
+    display: flex;
+    gap: 1.5rem;
+    justify-content: center;
+}
+
+.mac-btn {
+    background: rgba(255, 255, 255, 0.15);
+    border: none;
+    padding: 0.9rem 3.5rem;
+    border-radius: 30px;
+    color: white;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    backdrop-filter: blur(30px);
+    transition: all 0.2s;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.3);
+}
+
+.mac-btn:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: scale(1.03);
+}
+
+.auth-screen {
+    display: none;
+}
+
+.auth-screen.active {
+    display: block;
+}
+
+.admin-input {
+    background: rgba(30, 30, 35, 0.85);
+    border: 1px solid rgba(255,255,255,0.2);
+    padding: 0.9rem 1.7rem;
+    border-radius: 12px;
+    color: white;
+    text-align: center;
+    font-size: 1.1rem;
+    width: 280px;
+    outline: none;
+    backdrop-filter: blur(20px);
+}
+
+.password-boxes {
+    display: flex;
+    gap: 0.6rem;
+    margin: 3vh 0;
+    justify-content: center;
+}
+
+.pass-box {
+    width: 3.2rem;
+    height: 3.8rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    color: var(--hologram-white);
+    font-family: -apple-system, "SF Pro Display", "Inter", sans-serif;
+    font-size: 1.9rem;
+    font-weight: 600;
+    text-align: center;
+    outline: none;
+    border-radius: 10px;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(15px);
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+    pointer-events: none;
+    transition: none;
+}
+
+#hologram-keyboard {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5vh;
+    margin: 0 auto 2vh auto;
+    max-width: 90vw;
+    transition: opacity 0.3s ease;
+}
+
+#hologram-keyboard.locked {
+    opacity: 0.3;
+    pointer-events: none;
+}
+
+#hologram-keyboard .holo-row {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+}
+
+#hologram-keyboard .holo-key {
+    width: 4.2rem;
+    height: 4.2rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    color: var(--hologram-white);
+    font-size: 1.2rem;
+    font-weight: 500;
+    font-family: -apple-system, "SF Pro Display", sans-serif;
+    letter-spacing: 0.05em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    backdrop-filter: blur(15px);
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+    user-select: none;
+}
+
+#hologram-keyboard .holo-key:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.6);
+    box-shadow: 0 0 25px rgba(255, 255, 255, 0.5);
+    text-shadow: 0 0 12px rgba(255, 255, 255, 0.8);
+    transform: translateY(-2px) scale(1.03);
+}
+
+#hologram-keyboard .holo-key:active,
+#hologram-keyboard .holo-key.pulse {
+    background: rgba(255, 255, 255, 0.25);
+    color: #FFFFFF;
+    border-color: var(--hologram-white);
+    transform: scale(1.05);
+    box-shadow: 0 0 35px rgba(255, 255, 255, 0.8), 0 0 60px rgba(255, 255, 255, 0.5);
+}
+
+#hologram-keyboard .holo-key.functional {
+    width: 6.3rem;
+    font-size: 0.85rem;
+    letter-spacing: 0.1em;
+}
+
+#hologram-keyboard .holo-key.spacebar {
+    width: 16rem;
+    font-size: 0.85rem;
+}
+
+.footer-controls {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 2rem;
+    margin-top: 2vh;
+}
+
+.timer-display {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 0.7rem 2rem;
+    border-radius: 25px;
+    font-size: 1.1rem;
+    color: var(--hologram-white);
+    font-family: -apple-system, "SF Pro Display", sans-serif;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    backdrop-filter: blur(15px);
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
+    pointer-events: none;
+}
+
+.back-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    padding: 0.7rem 2.5rem;
+    border-radius: 25px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    color: white;
+    font-family: -apple-system, "SF Pro Display", sans-serif;
+    backdrop-filter: blur(15px);
+    box-shadow: 0 0 12px rgba(255, 255, 255, 0.2);
+    transition: all 0.2s;
+}
+
+.back-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.4);
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+    transform: scale(1.03);
+}
+
+.hidden {
+    display: none !important;
+}
+
+@media (max-height: 750px) {
+    .time {
+        font-size: 3.5rem;
+    }
+    #hologram-keyboard .holo-key {
+        width: 3.5rem;
+        height: 3.5rem;
+        font-size: 1rem;
+    }
+    #hologram-keyboard .holo-key.functional {
+        width: 5.25rem;
+        font-size: 0.75rem;
+    }
+    #hologram-keyboard .holo-key.spacebar {
+        width: 13rem;
+    }
+}
