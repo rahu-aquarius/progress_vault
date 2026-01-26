@@ -1,0 +1,85 @@
+/* processing.css */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    height: 100vh;
+    width: 100vw;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #0a0a0a;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", sans-serif;
+    overflow: hidden;
+}
+
+.container {
+    text-align: center;
+    opacity: 0;
+    animation: fadeIn 0.6s ease-out forwards;
+}
+
+@keyframes fadeIn {
+    to {
+        opacity: 1;
+    }
+}
+
+.loader {
+    width: 60px;
+    height: 60px;
+    margin: 0 auto 2rem;
+    position: relative;
+}
+
+.loader-circle {
+    width: 100%;
+    height: 100%;
+    border: 3px solid rgba(255, 255, 255, 0.1);
+    border-top-color: rgba(255, 255, 255, 0.5);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.message {
+    font-size: 1.5rem;
+    font-weight: 500;
+    color: #d0d0d0;
+    margin-bottom: 1rem;
+    letter-spacing: -0.01em;
+}
+
+.loading-dots {
+    font-size: 1rem;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.loading-dots span {
+    animation: blink 1.4s infinite;
+}
+
+.loading-dots span:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.loading-dots span:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes blink {
+    0%, 80%, 100% {
+        opacity: 0.2;
+    }
+    40% {
+        opacity: 1;
+    }
+}
