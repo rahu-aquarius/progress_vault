@@ -4,10 +4,10 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 import random
-from datetime import timedelta
+from datetime import timedelta, datetime, timezone
 from passlib.context import CryptContext
 from database import engine, get_db, Base
-from models import Video, Comment, Settings
+from models import Video, Comment, Settings, Heading
 from config import settings
 from auth import create_access_token, verify_token
 
@@ -23,12 +23,18 @@ templates = Jinja2Templates(directory="templates")
 
 CODE_POOL = "0123456789SAMIPARYAL"
 
+# Nepal timezone offset
+NEPAL_OFFSET = timedelta(hours=5, minutes=45)
+
+
+def get_cache_buster():
+    return int(datetime.now().timestamp())
+
 
 def generate_challenge_code():
     return ''.join(random.choice(CODE_POOL) for _ in range(7))
 
 
-# Prevent page caching
 def add_no_cache_headers(response: Response):
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
     response.headers["Pragma"] = "no-cache"
@@ -36,7 +42,6 @@ def add_no_cache_headers(response: Response):
     return response
 
 
-# Helper function to get/set settings
 def get_setting(db: Session, key: str, default: str = "true"):
     setting = db.query(Settings).filter(Settings.key == key).first()
     if not setting:
@@ -57,7 +62,6 @@ def set_setting(db: Session, key: str, value: str):
     db.commit()
 
 
-# STRICT authentication checker
 def get_current_user(access_token: str = Cookie(None)):
     if not access_token:
         return None
@@ -70,7 +74,6 @@ def get_current_user(access_token: str = Cookie(None)):
         return None
 
 
-# NEW: Require authentication decorator equivalent
 def require_auth(user, required_role=None):
     if not user:
         return False
@@ -83,7 +86,6 @@ def require_auth(user, required_role=None):
 
 @app.get("/", response_class=HTMLResponse)
 async def root(request: Request, user=Depends(get_current_user)):
-    # If already logged in, redirect to appropriate page
     if user:
         if user.get("role") == "admin":
             return RedirectResponse(url="/admin/dashboard", status_code=303)
@@ -102,7 +104,6 @@ async def get_challenge():
 
 @app.post("/login-admin")
 async def login_admin(password: str = Form(...), db: Session = Depends(get_db)):
-    # Check if password was changed in database (takes priority)
     db_password = None
     try:
         db_password_setting = db.query(Settings).filter(Settings.key == "admin_password").first()
@@ -111,7 +112,6 @@ async def login_admin(password: str = Form(...), db: Session = Depends(get_db)):
     except:
         pass
 
-    # Use database password if exists, otherwise use .env password
     correct_password = db_password if db_password else settings.ADMIN_PASSWORD
 
     if password == correct_password:
@@ -173,8 +173,6 @@ async def logout():
 
 # ============= PROTECTED ROUTES - ADMIN =============
 
-# Add this new route with other admin routes
-
 @app.post("/admin/change-password")
 async def change_password(
         current_password: str = Form(...),
@@ -186,35 +184,28 @@ async def change_password(
     if not require_auth(user, required_role="admin"):
         return JSONResponse(status_code=401, content={"error": "Unauthorized"})
 
-    # Get current password (check database first, then .env)
     db_password_setting = db.query(Settings).filter(Settings.key == "admin_password").first()
     current_correct_password = db_password_setting.value if db_password_setting else settings.ADMIN_PASSWORD
 
-    # Verify current password
     if current_password != current_correct_password:
         return JSONResponse(status_code=400, content={
             "success": False,
             "error": "Current password is incorrect"
         })
 
-    # Verify checkbox was ticked
     if confirm_checkbox != "true":
         return JSONResponse(status_code=400, content={
             "success": False,
             "error": "You must confirm by checking the box"
         })
 
-    # Validate new password (minimum 8 characters)
     if len(new_password) < 8:
         return JSONResponse(status_code=400, content={
             "success": False,
             "error": "New password must be at least 8 characters"
         })
 
-    # Store new password in database settings table
     set_setting(db, "admin_password", new_password)
-
-    # Update in-memory settings (so it takes effect immediately)
     settings.ADMIN_PASSWORD = new_password
 
     return {
@@ -229,7 +220,6 @@ async def admin_dashboard(
         db: Session = Depends(get_db),
         user=Depends(get_current_user)
 ):
-    # STRICT CHECK: Must be authenticated AND must be admin
     if not require_auth(user, required_role="admin"):
         response = RedirectResponse(url="/", status_code=303)
         response.delete_cookie("access_token")
@@ -242,7 +232,8 @@ async def admin_dashboard(
         "request": request,
         "videos": videos,
         "user": user,
-        "guest_login_enabled": guest_enabled
+        "guest_login_enabled": guest_enabled,
+        "cache_buster": get_cache_buster()
     })
     return add_no_cache_headers(response)
 
@@ -255,13 +246,11 @@ async def viewing_section(
         db: Session = Depends(get_db),
         user=Depends(get_current_user)
 ):
-    # STRICT CHECK: Must be authenticated (admin OR guest)
     if not user:
         response = RedirectResponse(url="/", status_code=303)
         response.delete_cookie("access_token")
         return response
 
-    # Get only non-hidden videos
     videos = db.query(Video).filter(Video.is_hidden == False).order_by(Video.upload_date.desc()).all()
 
     response = templates.TemplateResponse("viewing_section.html", {
@@ -272,7 +261,6 @@ async def viewing_section(
     return add_no_cache_headers(response)
 
 
-# NEW: API to verify authentication status
 @app.get("/api/verify-auth")
 async def verify_auth(user=Depends(get_current_user)):
     if not user:
@@ -295,7 +283,6 @@ async def check_session(user=Depends(get_current_user)):
             content={"valid": False}
         )
 
-    # Check if token is about to expire (within 5 seconds)
     import time
     exp_timestamp = user.get("exp", 0)
     current_timestamp = time.time()
@@ -387,3 +374,189 @@ async def toggle_hide_video(
         db.commit()
 
     return {"success": True, "is_hidden": video.is_hidden}
+
+
+# ============= HEADING ROUTES =============
+
+@app.post("/admin/heading/create")
+async def create_heading(
+        heading_type: str = Form(...),
+        heading_name: str = Form(...),
+        parent_heading_id: int = Form(None),
+        subheading_number: int = Form(None),
+        tags: str = Form(None),
+        visibility: str = Form(...),
+        db: Session = Depends(get_db),
+        user=Depends(get_current_user)
+):
+    if not require_auth(user, required_role="admin"):
+        return JSONResponse(status_code=401, content={"success": False, "error": "Unauthorized"})
+
+    try:
+        new_heading = Heading(
+            heading_type=heading_type,
+            heading_name=heading_name,
+            parent_heading_id=parent_heading_id,
+            subheading_number=subheading_number,
+            tags=tags if tags else "",
+            visibility=visibility
+        )
+        db.add(new_heading)
+        db.commit()
+        db.refresh(new_heading)
+
+        nepal_time = new_heading.created_at + NEPAL_OFFSET
+
+        return JSONResponse(content={
+            "success": True,
+            "message": f"{heading_type.capitalize()} created successfully!",
+            "heading": {
+                "id": new_heading.id,
+                "heading_type": new_heading.heading_type,
+                "heading_name": new_heading.heading_name,
+                "parent_heading_id": new_heading.parent_heading_id,
+                "subheading_number": new_heading.subheading_number,
+                "tags": new_heading.tags,
+                "visibility": new_heading.visibility,
+                "created_at": nepal_time.strftime("%B %d, %Y %I:%M %p")
+            }
+        })
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": str(e)}
+        )
+
+
+@app.get("/api/headings")
+async def get_headings(
+        visibility: str = None,
+        db: Session = Depends(get_db),
+        user=Depends(get_current_user)
+):
+    if not user:
+        return JSONResponse(status_code=401, content={"error": "Unauthorized"})
+
+    try:
+        query = db.query(Heading).order_by(Heading.created_at.desc())
+
+        if visibility:
+            query = query.filter(Heading.visibility == visibility)
+
+        headings = query.all()
+
+        return JSONResponse(content={
+            "success": True,
+            "headings": [
+                {
+                    "id": h.id,
+                    "heading_type": h.heading_type,
+                    "heading_name": h.heading_name,
+                    "parent_heading_id": h.parent_heading_id,
+                    "subheading_number": h.subheading_number,
+                    "tags": h.tags,
+                    "visibility": h.visibility,
+                    "created_at": (h.created_at + NEPAL_OFFSET).strftime("%B %d, %Y %I:%M %p")
+                }
+                for h in headings
+            ]
+        })
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
+
+
+@app.get("/api/headings/list")
+async def list_headings_only(
+        db: Session = Depends(get_db),
+        user=Depends(get_current_user)
+):
+    if not user:
+        return JSONResponse(status_code=401, content={"error": "Unauthorized"})
+
+    try:
+        headings = db.query(Heading).filter(Heading.heading_type == "heading").order_by(Heading.heading_name).all()
+        return JSONResponse(content={
+            "success": True,
+            "headings": [
+                {"id": h.id, "name": h.heading_name}
+                for h in headings
+            ]
+        })
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
+
+
+@app.get("/api/subheading/next-number/{parent_id}")
+async def get_next_subheading_number(
+        parent_id: int,
+        db: Session = Depends(get_db),
+        user=Depends(get_current_user)
+):
+    if not user:
+        return JSONResponse(status_code=401, content={"error": "Unauthorized"})
+
+    try:
+        count = db.query(Heading).filter(
+            Heading.parent_heading_id == parent_id,
+            Heading.heading_type == "subheading"
+        ).count()
+
+        return JSONResponse(content={
+            "success": True,
+            "next_number": count + 1
+        })
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
+
+
+# Get subheadings for a specific heading (for small heading form)
+@app.get("/api/subheadings/by-heading/{heading_id}")
+async def get_subheadings_by_heading(
+        heading_id: int,
+        db: Session = Depends(get_db),
+        user=Depends(get_current_user)
+):
+    if not user:
+        return JSONResponse(status_code=401, content={"error": "Unauthorized"})
+
+    try:
+        subheadings = db.query(Heading).filter(
+            Heading.heading_type == "subheading",
+            Heading.parent_heading_id == heading_id
+        ).order_by(Heading.subheading_number).all()
+
+        return JSONResponse(content={
+            "success": True,
+            "subheadings": [
+                {"id": sh.id, "name": f"{sh.subheading_number}) {sh.heading_name}"}
+                for sh in subheadings
+            ]
+        })
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
+
+
+# Get next small heading number for a parent subheading
+@app.get("/api/smallheading/next-number/{subheading_id}")
+async def get_next_smallheading_number(
+        subheading_id: int,
+        db: Session = Depends(get_db),
+        user=Depends(get_current_user)
+):
+    if not user:
+        return JSONResponse(status_code=401, content={"error": "Unauthorized"})
+
+    try:
+        # Count existing small headings under this subheading
+        count = db.query(Heading).filter(
+            Heading.parent_heading_id == subheading_id,
+            Heading.heading_type == "smallheading"
+        ).count()
+
+        return JSONResponse(content={
+            "success": True,
+            "next_number": count + 1
+        })
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
+

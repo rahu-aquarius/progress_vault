@@ -7,7 +7,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>Admin Dashboard - Progress Vault</title>
-    <link rel="stylesheet" href="/static/css/admin_dashboard.css">
+    <link rel="stylesheet" href="/static/css/admin_dashboard.css?v={{ cache_buster }}">
 </head>
 <body>
     <!-- Sidebar Navigation -->
@@ -43,7 +43,7 @@
 
     <!-- Main Content -->
     <main class="main-content">
-        <!-- Menu Toggle Button (Moveable, not fixed) -->
+        <!-- Menu Toggle Button -->
         <button class="menu-toggle-btn" onclick="toggleSidebar()">
             <div class="menu-icon">
                 <span></span>
@@ -60,7 +60,6 @@
             </div>
 
             <div class="control-grid">
-                <!-- Guest Access Control -->
                 <div class="control-card">
                     <h3 class="control-card-title">Guest Access Control</h3>
                     <p class="control-card-desc">Enable or disable guest login access to the viewing section</p>
@@ -79,7 +78,6 @@
                     </div>
                 </div>
 
-                <!-- Quick Stats -->
                 <div class="control-card">
                     <h3 class="control-card-title">System Statistics</h3>
                     <p class="control-card-desc">Overview of your vault's current status</p>
@@ -99,7 +97,6 @@
                 </div>
             </div>
 
-            <!-- Password Change Section -->
             <div class="password-section">
                 <h2 class="section-title">Change Admin Password</h2>
 
@@ -148,10 +145,20 @@
                 <p class="page-subtitle">Upload, edit, and organize your videos</p>
             </div>
 
-            <div class="placeholder-section">
+            <!-- Create Button -->
+            <button class="btn-create" onclick="showCreateOptions()">
+                <span class="create-icon">+</span>
+                <span>Create</span>
+            </button>
+
+            <!-- Headings Container -->
+            <div id="headingsContainer" class="headings-container"></div>
+
+            <!-- Placeholder (shown when no headings) -->
+            <div class="placeholder-section" id="noHeadingsPlaceholder" style="margin-top: 2rem; display: none;">
                 <div class="placeholder-icon">📹</div>
-                <h3 class="placeholder-title">Content Management</h3>
-                <p class="placeholder-text">Video upload and management features coming soon...</p>
+                <h3 class="placeholder-title">No Headings Yet</h3>
+                <p class="placeholder-text">Click "Create" to add your first heading...</p>
             </div>
         </section>
 
@@ -184,6 +191,294 @@
         </section>
     </main>
 
-    <script src="/static/js/admin_dashboard.js"></script>
+    <!-- POPUPS MOVED HERE - OUTSIDE MAIN TAG -->
+
+    <!-- Create Options Popup -->
+    <div class="popup-overlay" id="createOptionsOverlay" onclick="closePopup('createOptionsOverlay')">
+        <div class="popup-container create-options-popup" onclick="event.stopPropagation()">
+            <div class="popup-header">
+                <h3>What do you want to create?</h3>
+                <button class="popup-close" onclick="closePopup('createOptionsOverlay')">✕</button>
+            </div>
+
+            <div class="options-grid">
+                <div class="option-card" onclick="showConfirmation('heading')">
+                    <div class="option-icon">H</div>
+                    <div class="option-title">Heading</div>
+                    <div class="option-desc">Create a main heading</div>
+                </div>
+
+                <div class="option-card" onclick="showConfirmation('subheading')">
+                    <div class="option-icon">h</div>
+                    <div class="option-title">Sub Heading</div>
+                    <div class="option-desc">Create a sub heading</div>
+                </div>
+
+                <div class="option-card" onclick="showConfirmation('smallheading')">
+                    <div class="option-icon">h</div>
+                    <div class="option-title">Small Heading</div>
+                    <div class="option-desc">Create a small heading</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Popup -->
+    <div class="popup-overlay" id="confirmationOverlay" onclick="closePopup('confirmationOverlay')">
+        <div class="popup-container confirmation-popup" onclick="event.stopPropagation()">
+            <div class="popup-header">
+                <h3>Confirm Action</h3>
+            </div>
+
+            <div class="confirmation-content">
+                <p id="confirmationMessage">Are you sure you want to create a Heading?</p>
+            </div>
+
+            <div class="confirmation-buttons">
+                <button class="btn-secondary" onclick="closePopup('confirmationOverlay')">NO</button>
+                <button class="btn-primary" onclick="confirmCreate()">YES</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Form Popup - HEADING -->
+    <div class="popup-overlay" id="formOverlayHeading" onclick="closePopup('formOverlayHeading')">
+        <div class="popup-container form-popup" onclick="event.stopPropagation()">
+            <div class="popup-header">
+                <h3>Create Heading</h3>
+                <button class="popup-close" onclick="closePopup('formOverlayHeading')">✕</button>
+            </div>
+
+            <form id="headingFormMain" class="heading-form" onsubmit="submitHeading(event)">
+                <div class="form-content-grid">
+                    <!-- Heading Name -->
+                    <div class="form-group">
+                        <label class="form-label">Heading Name</label>
+                        <input type="text" class="form-input" name="heading_name" placeholder="Enter heading name..." required>
+                    </div>
+
+                    <!-- Date Created -->
+                    <div class="form-group">
+                        <label class="form-label">Date Created</label>
+                        <input type="text" class="form-input readonly-input" id="dateCreatedHeading" readonly>
+                    </div>
+
+                    <!-- Time Created -->
+                    <div class="form-group">
+                        <label class="form-label">Time Created</label>
+                        <input type="text" class="form-input readonly-input" id="timeCreatedHeading" readonly>
+                    </div>
+
+                    <!-- Tags -->
+                    <div class="form-group">
+                        <label class="form-label">Tags</label>
+                        <select class="form-input" name="tags">
+                            <option value="">-- No tags available yet --</option>
+                        </select>
+                    </div>
+
+                    <!-- Visibility -->
+                    <div class="form-group">
+                        <label class="form-label">Visibility</label>
+                        <div class="radio-group">
+                            <label class="radio-label">
+                                <input type="radio" name="visibility" value="public" checked>
+                                <span class="radio-custom"></span>
+                                <span>Public</span>
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="visibility" value="private">
+                                <span class="radio-custom"></span>
+                                <span>Private</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <input type="hidden" name="heading_type" value="heading">
+
+                <div class="form-message error-message" id="formErrorHeading"></div>
+                <div class="form-message success-message" id="formSuccessHeading"></div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" onclick="closePopup('formOverlayHeading')">Cancel</button>
+                    <button type="submit" class="btn-primary">Create Heading</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Form Popup - SUBHEADING -->
+    <div class="popup-overlay" id="formOverlaySubheading" onclick="closePopup('formOverlaySubheading')">
+        <div class="popup-container form-popup" onclick="event.stopPropagation()">
+            <div class="popup-header">
+                <h3>Create Sub Heading</h3>
+                <button class="popup-close" onclick="closePopup('formOverlaySubheading')">✕</button>
+            </div>
+
+            <form id="subheadingFormMain" class="heading-form" onsubmit="submitHeading(event)">
+                <div class="form-content-grid">
+                    <!-- Choose Heading -->
+                    <div class="form-group">
+                        <label class="form-label">Choose Heading</label>
+                        <select class="form-input" id="parentHeadingSelect" name="parent_heading_id" required onchange="updateSubheadingNumber()">
+                            <option value="">-- Select a heading --</option>
+                        </select>
+                    </div>
+
+                    <!-- Sub Heading Number -->
+                    <div class="form-group">
+                        <label class="form-label">Sub Heading Number</label>
+                        <input type="text" class="form-input readonly-input" id="subheadingNumber" name="subheading_number" readonly>
+                    </div>
+
+                    <!-- Sub Heading Name -->
+                    <div class="form-group">
+                        <label class="form-label">Sub Heading Name</label>
+                        <input type="text" class="form-input" name="heading_name" placeholder="Enter sub heading name..." required>
+                    </div>
+
+                    <!-- Date Created -->
+                    <div class="form-group">
+                        <label class="form-label">Date Created</label>
+                        <input type="text" class="form-input readonly-input" id="dateCreatedSubheading" readonly>
+                    </div>
+
+                    <!-- Time Created -->
+                    <div class="form-group">
+                        <label class="form-label">Time Created</label>
+                        <input type="text" class="form-input readonly-input" id="timeCreatedSubheading" readonly>
+                    </div>
+
+                    <!-- Tags -->
+                    <div class="form-group">
+                        <label class="form-label">Tags</label>
+                        <select class="form-input" name="tags">
+                            <option value="">-- No tags available yet --</option>
+                        </select>
+                    </div>
+
+                    <!-- Visibility -->
+                    <div class="form-group">
+                        <label class="form-label">Visibility</label>
+                        <div class="radio-group">
+                            <label class="radio-label">
+                                <input type="radio" name="visibility" value="public" checked>
+                                <span class="radio-custom"></span>
+                                <span>Public</span>
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="visibility" value="private">
+                                <span class="radio-custom"></span>
+                                <span>Private</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <input type="hidden" name="heading_type" value="subheading">
+
+                <div class="form-message error-message" id="formErrorSubheading"></div>
+                <div class="form-message success-message" id="formSuccessSubheading"></div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" onclick="closePopup('formOverlaySubheading')">Cancel</button>
+                    <button type="submit" class="btn-primary">Create Sub Heading</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Form Popup - SMALL HEADING -->
+    <div class="popup-overlay" id="formOverlaySmallheading" onclick="closePopup('formOverlaySmallheading')">
+        <div class="popup-container form-popup" onclick="event.stopPropagation()">
+            <div class="popup-header">
+                <h3>Create Small Heading</h3>
+                <button class="popup-close" onclick="closePopup('formOverlaySmallheading')">✕</button>
+            </div>
+
+            <form id="smallheadingFormMain" class="heading-form" onsubmit="submitHeading(event)">
+                <div class="form-content-grid">
+                    <!-- Choose Heading -->
+                    <div class="form-group">
+                        <label class="form-label">Choose Heading</label>
+                        <select class="form-input" id="smallHeadingParentSelect" required onchange="loadSubheadingsForSmallHeading()">
+                            <option value="">-- Select a heading --</option>
+                        </select>
+                    </div>
+
+                    <!-- Choose Subheading -->
+                    <div class="form-group">
+                        <label class="form-label">Choose Sub Heading</label>
+                        <select class="form-input" id="smallHeadingSubheadingSelect" name="parent_heading_id" required onchange="updateSmallHeadingNumber()">
+                            <option value="">-- Select a sub heading --</option>
+                        </select>
+                    </div>
+
+                    <!-- Small Heading Number -->
+                    <div class="form-group">
+                        <label class="form-label">Small Heading Number</label>
+                        <input type="text" class="form-input readonly-input" id="smallHeadingNumber" name="subheading_number" readonly>
+                    </div>
+
+                    <!-- Small Heading Name -->
+                    <div class="form-group">
+                        <label class="form-label">Small Heading Name</label>
+                        <input type="text" class="form-input" name="heading_name" placeholder="Enter small heading name..." required>
+                    </div>
+
+                    <!-- Date Created -->
+                    <div class="form-group">
+                        <label class="form-label">Date Created</label>
+                        <input type="text" class="form-input readonly-input" id="dateCreatedSmallheading" readonly>
+                    </div>
+
+                    <!-- Time Created -->
+                    <div class="form-group">
+                        <label class="form-label">Time Created</label>
+                        <input type="text" class="form-input readonly-input" id="timeCreatedSmallheading" readonly>
+                    </div>
+
+                    <!-- Tags -->
+                    <div class="form-group">
+                        <label class="form-label">Tags</label>
+                        <select class="form-input" name="tags">
+                            <option value="">-- No tags available yet --</option>
+                        </select>
+                    </div>
+
+                    <!-- Visibility -->
+                    <div class="form-group">
+                        <label class="form-label">Visibility</label>
+                        <div class="radio-group">
+                            <label class="radio-label">
+                                <input type="radio" name="visibility" value="public" checked>
+                                <span class="radio-custom"></span>
+                                <span>Public</span>
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="visibility" value="private">
+                                <span class="radio-custom"></span>
+                                <span>Private</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <input type="hidden" name="heading_type" value="smallheading">
+
+                <div class="form-message error-message" id="formErrorSmallheading"></div>
+                <div class="form-message success-message" id="formSuccessSmallheading"></div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" onclick="closePopup('formOverlaySmallheading')">Cancel</button>
+                    <button type="submit" class="btn-primary">Create Small Heading</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/static/js/admin_dashboard.js?v={{ cache_buster }}"></script>
+
 </body>
 </html>
