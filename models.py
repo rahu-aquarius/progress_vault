@@ -35,7 +35,6 @@ class Comment(Base):
     video = relationship("Video", back_populates="comments")
 
 
-# NEW: Settings table for guest access control
 class Settings(Base):
     __tablename__ = "settings"
 
@@ -44,4 +43,16 @@ class Settings(Base):
     value = Column(String, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+
+class Heading(Base):
+    __tablename__ = "headings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    heading_type = Column(String)  # 'heading', 'subheading', 'smallheading'
+    heading_name = Column(String)
+    parent_heading_id = Column(Integer, nullable=True)  # NEW - for subheadings under headings
+    subheading_number = Column(Integer, nullable=True)  # NEW - serial number like 1, 2, 3
+    tags = Column(String, nullable=True)
+    visibility = Column(String)  # 'public' or 'private'
+    created_at = Column(DateTime, default=datetime.utcnow)
 
