@@ -736,12 +736,14 @@ async def delete_heading(
 @app.post("/admin/post/create")
 async def create_post(
         parent_heading_id: int = Form(...),
-        post_content: str = Form(...),
+        post_title: str = Form(...),           # NEW
+        video_url: str = Form(...),            # NEW
+        post_description: str = Form(None),    # NEW
         visibility: str = Form("public"),
         db: Session = Depends(get_db),
         user=Depends(get_current_user)
 ):
-    """Create a new post under a subheading or small heading"""
+    """Create a new video post under a subheading or small heading"""
     if not require_auth(user, required_role="admin"):
         return JSONResponse(status_code=401, content={"success": False, "error": "Unauthorized"})
 
@@ -774,7 +776,9 @@ async def create_post(
 
         new_post = Post(
             parent_heading_id=parent_heading_id,
-            post_content=post_content,
+            post_title=post_title,
+            video_url=video_url,
+            post_description=post_description if post_description else "",
             visibility=visibility
         )
         db.add(new_post)
@@ -785,11 +789,13 @@ async def create_post(
 
         return JSONResponse(content={
             "success": True,
-            "message": "Post created successfully!",
+            "message": "Video post created successfully!",
             "post": {
                 "id": new_post.id,
                 "parent_heading_id": new_post.parent_heading_id,
-                "post_content": new_post.post_content,
+                "post_title": new_post.post_title,
+                "video_url": new_post.video_url,
+                "post_description": new_post.post_description,
                 "visibility": new_post.visibility,
                 "created_at": nepal_time.strftime("%B %d, %Y %I:%M %p")
             }
@@ -822,7 +828,10 @@ async def get_posts_by_heading(
                 {
                     "id": p.id,
                     "parent_heading_id": p.parent_heading_id,
-                    "post_content": p.post_content,
+                    "post_title": p.post_title if p.post_title else "",
+                    "video_url": p.video_url if p.video_url else "",
+                    "post_description": p.post_description if p.post_description else "",
+                    "post_content": p.post_content if p.post_content else "",  # backward compatibility
                     "visibility": p.visibility,
                     "created_at": (p.created_at + NEPAL_OFFSET).strftime("%B %d, %Y %I:%M %p"),
                     "updated_at": (p.updated_at + NEPAL_OFFSET).strftime("%B %d, %Y %I:%M %p")
@@ -860,7 +869,10 @@ async def get_post(
             "post": {
                 "id": post.id,
                 "parent_heading_id": post.parent_heading_id,
-                "post_content": post.post_content,
+                "post_title": post.post_title if post.post_title else "",
+                "video_url": post.video_url if post.video_url else "",
+                "post_description": post.post_description if post.post_description else "",
+                "post_content": post.post_content if post.post_content else "",  # backward compatibility
                 "visibility": post.visibility,
                 "created_at": nepal_time_created.strftime("%B %d, %Y %I:%M %p"),
                 "updated_at": nepal_time_updated.strftime("%B %d, %Y %I:%M %p")
@@ -873,12 +885,14 @@ async def get_post(
 @app.post("/admin/post/edit/{post_id}")
 async def edit_post(
         post_id: int,
-        post_content: str = Form(...),
+        post_title: str = Form(...),           # NEW
+        video_url: str = Form(...),            # NEW
+        post_description: str = Form(None),    # NEW
         visibility: str = Form(...),
         db: Session = Depends(get_db),
         user=Depends(get_current_user)
 ):
-    """Edit an existing post"""
+    """Edit an existing video post"""
     if not require_auth(user, required_role="admin"):
         return JSONResponse(status_code=401, content={"success": False, "error": "Unauthorized"})
 
@@ -890,7 +904,9 @@ async def edit_post(
                 content={"success": False, "error": "Post not found"}
             )
 
-        post.post_content = post_content
+        post.post_title = post_title
+        post.video_url = video_url
+        post.post_description = post_description if post_description else ""
         post.visibility = visibility
         post.updated_at = datetime.utcnow()
 
@@ -898,7 +914,7 @@ async def edit_post(
 
         return JSONResponse(content={
             "success": True,
-            "message": "Post updated successfully!"
+            "message": "Video post updated successfully!"
         })
 
     except Exception as e:

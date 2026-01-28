@@ -65,10 +65,19 @@ class Post(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     parent_heading_id = Column(Integer, ForeignKey("headings.id", ondelete="CASCADE"), nullable=False)
-    post_content = Column(Text, nullable=False)
+
+    # NEW VIDEO POST FIELDS
+    post_title = Column(String(100), nullable=True)  # 2-3 word title (shown on hover)
+    video_url = Column(String(500), nullable=True)  # YouTube unlisted video URL
+    post_description = Column(Text, nullable=True)  # 30-40 word description
+
+    # OLD FIELD (keep for backward compatibility)
+    post_content = Column(Text, nullable=True)  # Made nullable
+
     visibility = Column(String, default="public")  # 'public' or 'private'
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationship to heading (parent can be subheading or smallheading)
     parent_heading = relationship("Heading", back_populates="posts")
+
