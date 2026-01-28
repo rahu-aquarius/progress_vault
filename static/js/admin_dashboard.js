@@ -581,12 +581,7 @@ async function displayHeadings(headings) {
                         <span class="heading-meta-icon">📅</span>
                         <span>${heading.created_at}</span>
                     </div>
-                    ${heading.tags ? `
-                    <div class="heading-meta-item">
-                        <span class="heading-meta-icon">🏷️</span>
-                        <span class="heading-tag">${heading.tags}</span>
-                    </div>
-                    ` : ''}
+
                 </div>
         `;
 
