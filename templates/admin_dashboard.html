@@ -10,6 +10,26 @@
     <link rel="stylesheet" href="/static/css/admin_dashboard.css?v={{ cache_buster }}">
 </head>
 <body>
+
+    <!-- ============================================ -->
+    <!-- CUSTOM ALERT/CONFIRM POPUP (ADDED) -->
+    <!-- ============================================ -->
+    <div class="custom-alert-overlay" id="customAlertOverlay">
+        <div class="custom-alert-box">
+            <div class="custom-alert-header">
+                <div class="custom-alert-icon" id="customAlertIcon">ℹ️</div>
+                <div class="custom-alert-title" id="customAlertTitle">Alert</div>
+            </div>
+            <div class="custom-alert-content" id="customAlertMessage">
+                This is a custom alert message.
+            </div>
+            <div class="custom-alert-actions" id="customAlertActions">
+                <button class="custom-alert-btn custom-alert-btn-confirm" onclick="closeCustomAlert()">OK</button>
+            </div>
+        </div>
+    </div>
+    <!-- ============================================ -->
+
     <!-- Sidebar Navigation -->
     <nav class="sidebar" id="sidebar">
         <div class="sidebar-header">
@@ -478,45 +498,375 @@
         </div>
     </div>
 
+    <!-- Details Popup -->
+    <div class="popup-overlay" id="detailsOverlay" onclick="closePopup('detailsOverlay')">
+        <div class="popup-container details-popup" onclick="event.stopPropagation()">
+            <div class="popup-header">
+                <h3 id="detailsPopupTitle">Heading Details</h3>
+                <button class="popup-close" onclick="closePopup('detailsOverlay')">✕</button>
+            </div>
 
-    <!-- Details Popup - Shows date/time and actions -->
-<div class="popup-overlay" id="detailsOverlay" onclick="closePopup('detailsOverlay')">
-    <div class="popup-container details-popup" onclick="event.stopPropagation()">
-        <div class="popup-header">
-            <h3 id="detailsPopupTitle">Heading Details</h3>
-            <button class="popup-close" onclick="closePopup('detailsOverlay')">✕</button>
-        </div>
+            <div class="details-content">
+                <div class="detail-row">
+                    <span class="detail-icon">📅</span>
+                    <div class="detail-info">
+                        <span class="detail-label">Date Created</span>
+                        <span class="detail-value" id="detailsDate">-</span>
+                    </div>
+                </div>
 
-        <div class="details-content">
-            <div class="detail-row">
-                <span class="detail-icon">📅</span>
-                <div class="detail-info">
-                    <span class="detail-label">Date Created</span>
-                    <span class="detail-value" id="detailsDate">-</span>
+                <div class="detail-row">
+                    <span class="detail-icon">🕐</span>
+                    <div class="detail-info">
+                        <span class="detail-label">Time Created</span>
+                        <span class="detail-value" id="detailsTime">-</span>
+                    </div>
                 </div>
             </div>
 
-            <div class="detail-row">
-                <span class="detail-icon">🕐</span>
-                <div class="detail-info">
-                    <span class="detail-label">Time Created</span>
-                    <span class="detail-value" id="detailsTime">-</span>
-                </div>
+            <div class="details-actions">
+                <button class="btn-details-action btn-edit" id="detailsEditBtn">
+                    <span>✏️</span>
+                    <span>Edit</span>
+                </button>
+                <button class="btn-details-action btn-delete" id="detailsDeleteBtn">
+                    <span>🗑️</span>
+                    <span>Delete</span>
+                </button>
             </div>
-        </div>
-
-        <div class="details-actions">
-            <button class="btn-details-action btn-edit" id="detailsEditBtn">
-                <span>✏️</span>
-                <span>Edit</span>
-            </button>
-            <button class="btn-details-action btn-delete" id="detailsDeleteBtn">
-                <span>🗑️</span>
-                <span>Delete</span>
-            </button>
         </div>
     </div>
-</div>
+
+    <!-- Edit Form - HEADING -->
+    <div class="popup-overlay" id="editFormOverlayHeading" onclick="closePopup('editFormOverlayHeading')">
+        <div class="popup-container form-popup" onclick="event.stopPropagation()">
+            <div class="popup-header">
+                <h3>Edit Heading</h3>
+                <button class="popup-close" onclick="closePopup('editFormOverlayHeading')">✕</button>
+            </div>
+
+            <form id="editFormHeading" class="heading-form" onsubmit="submitEditHeading(event, 'heading')">
+                <input type="hidden" id="editHeadingId">
+
+                <div class="form-content-grid">
+                    <div class="form-group">
+                        <label class="form-label">Heading Name</label>
+                        <input type="text" class="form-input" id="editHeadingName" name="heading_name" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Tags</label>
+                        <select class="form-input" name="tags">
+                            <option value="">-- No tags available yet --</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Visibility</label>
+                        <div class="radio-group">
+                            <label class="radio-label">
+                                <input type="radio" name="visibility" value="public">
+                                <span class="radio-custom"></span>
+                                <span>Public</span>
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="visibility" value="private">
+                                <span class="radio-custom"></span>
+                                <span>Private</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-message error-message" id="editFormErrorHeading"></div>
+                <div class="form-message success-message" id="editFormSuccessHeading"></div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" onclick="closePopup('editFormOverlayHeading')">Cancel</button>
+                    <button type="submit" class="btn-primary">Update Heading</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Form - SUBHEADING -->
+    <div class="popup-overlay" id="editFormOverlaySubheading" onclick="closePopup('editFormOverlaySubheading')">
+        <div class="popup-container form-popup" onclick="event.stopPropagation()">
+            <div class="popup-header">
+                <h3>Edit Sub Heading</h3>
+                <button class="popup-close" onclick="closePopup('editFormOverlaySubheading')">✕</button>
+            </div>
+
+            <form id="editFormSubheading" class="heading-form" onsubmit="submitEditHeading(event, 'subheading')">
+                <input type="hidden" id="editSubheadingId">
+
+                <div class="form-content-grid">
+                    <div class="form-group">
+                        <label class="form-label">Parent Heading</label>
+                        <select class="form-input" id="editParentHeadingSelect" disabled>
+                            <option value="">-- Select a heading --</option>
+                        </select>
+                        <small style="color: #888; font-size: 0.8rem;">Cannot change parent heading</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Sub Heading Number</label>
+                        <input type="text" class="form-input readonly-input" id="editSubheadingNumber" readonly>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Sub Heading Name</label>
+                        <input type="text" class="form-input" id="editSubheadingName" name="heading_name" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Tags</label>
+                        <select class="form-input" name="tags">
+                            <option value="">-- No tags available yet --</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Visibility</label>
+                        <div class="radio-group">
+                            <label class="radio-label">
+                                <input type="radio" name="visibility" value="public">
+                                <span class="radio-custom"></span>
+                                <span>Public</span>
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="visibility" value="private">
+                                <span class="radio-custom"></span>
+                                <span>Private</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-message error-message" id="editFormErrorSubheading"></div>
+                <div class="form-message success-message" id="editFormSuccessSubheading"></div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" onclick="closePopup('editFormOverlaySubheading')">Cancel</button>
+                    <button type="submit" class="btn-primary">Update Sub Heading</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Form - SMALL HEADING -->
+    <div class="popup-overlay" id="editFormOverlaySmallheading" onclick="closePopup('editFormOverlaySmallheading')">
+        <div class="popup-container form-popup" onclick="event.stopPropagation()">
+            <div class="popup-header">
+                <h3>Edit Small Heading</h3>
+                <button class="popup-close" onclick="closePopup('editFormOverlaySmallheading')">✕</button>
+            </div>
+
+            <form id="editFormSmallheading" class="heading-form" onsubmit="submitEditHeading(event, 'smallheading')">
+                <input type="hidden" id="editSmallHeadingId">
+
+                <div class="form-content-grid">
+                    <div class="form-group">
+                        <label class="form-label">Parent Heading</label>
+                        <select class="form-input" id="editSmallHeadingParentSelect" disabled onchange="loadSubheadingsForSmallHeadingEdit()">
+                            <option value="">-- Select a heading --</option>
+                        </select>
+                        <small style="color: #888; font-size: 0.8rem;">Cannot change parent</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Parent Sub Heading</label>
+                        <select class="form-input" id="editSmallHeadingSubheadingSelect" disabled>
+                            <option value="">-- Select a sub heading --</option>
+                        </select>
+                        <small style="color: #888; font-size: 0.8rem;">Cannot change parent</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Small Heading Number</label>
+                        <input type="text" class="form-input readonly-input" id="editSmallHeadingNumber" readonly>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Small Heading Name</label>
+                        <input type="text" class="form-input" id="editSmallHeadingName" name="heading_name" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Tags</label>
+                        <select class="form-input" name="tags">
+                            <option value="">-- No tags available yet --</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Visibility</label>
+                        <div class="radio-group">
+                            <label class="radio-label">
+                                <input type="radio" name="visibility" value="public">
+                                <span class="radio-custom"></span>
+                                <span>Public</span>
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="visibility" value="private">
+                                <span class="radio-custom"></span>
+                                <span>Private</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-message error-message" id="editFormErrorSmallheading"></div>
+                <div class="form-message success-message" id="editFormSuccessSmallheading"></div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" onclick="closePopup('editFormOverlaySmallheading')">Cancel</button>
+                    <button type="submit" class="btn-primary">Update Small Heading</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- CREATE POST POPUP -->
+    <div class="popup-overlay" id="createPostOverlay" onclick="closePopup('createPostOverlay')">
+        <div class="popup-container form-popup" onclick="event.stopPropagation()">
+            <div class="popup-header">
+                <h3>Create Post</h3>
+                <button class="popup-close" onclick="closePopup('createPostOverlay')">✕</button>
+            </div>
+
+            <form id="createPostForm" onsubmit="submitPost(event)">
+                <input type="hidden" id="postParentHeadingId" name="parent_heading_id">
+
+                <div class="form-content-grid">
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label class="form-label">Post Content</label>
+                        <textarea class="form-textarea" name="post_content" rows="8" placeholder="Write your post content here..." required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Visibility</label>
+                        <div class="radio-group">
+                            <label class="radio-label">
+                                <input type="radio" name="visibility" value="public" checked>
+                                <span class="radio-custom"></span>
+                                <span>Public</span>
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="visibility" value="private">
+                                <span class="radio-custom"></span>
+                                <span>Private</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-message error-message" id="formErrorPost"></div>
+                <div class="form-message success-message" id="formSuccessPost"></div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" onclick="closePopup('createPostOverlay')">Cancel</button>
+                    <button type="submit" class="btn-primary">Create Post</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- EDIT POST POPUP -->
+    <div class="popup-overlay" id="editPostOverlay" onclick="closePopup('editPostOverlay')">
+        <div class="popup-container form-popup" onclick="event.stopPropagation()">
+            <div class="popup-header">
+                <h3>Edit Post</h3>
+                <button class="popup-close" onclick="closePopup('editPostOverlay')">✕</button>
+            </div>
+
+            <div class="post-datetime-display">
+                <div class="datetime-item">
+                    <span>📅</span>
+                    <span id="editPostCreatedDate">-</span>
+                </div>
+                <div class="datetime-item">
+                    <span>🕐</span>
+                    <span id="editPostCreatedTime">-</span>
+                </div>
+            </div>
+
+            <form id="editPostForm" onsubmit="submitEditPost(event)">
+                <input type="hidden" id="editPostId">
+
+                <div class="form-content-grid">
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label class="form-label">Post Content</label>
+                        <textarea class="form-textarea" id="editPostContent" name="post_content" rows="8" required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Visibility</label>
+                        <div class="radio-group">
+                            <label class="radio-label">
+                                <input type="radio" name="visibility" value="public">
+                                <span class="radio-custom"></span>
+                                <span>Public</span>
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="visibility" value="private">
+                                <span class="radio-custom"></span>
+                                <span>Private</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-message error-message" id="editFormErrorPost"></div>
+                <div class="form-message success-message" id="editFormSuccessPost"></div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" onclick="closePopup('editPostOverlay')">Cancel</button>
+                    <button type="submit" class="btn-primary">Update Post</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+        <!-- POST DETAILS POPUP -->
+    <div class="popup-overlay" id="postDetailsOverlay" onclick="closePopup('postDetailsOverlay')">
+        <div class="popup-container details-popup" onclick="event.stopPropagation()">
+            <div class="popup-header">
+                <h3>Post Details</h3>
+                <button class="popup-close" onclick="closePopup('postDetailsOverlay')">✕</button>
+            </div>
+
+            <div class="details-content">
+                <div class="detail-row">
+                    <span class="detail-icon">📅</span>
+                    <div class="detail-info">
+                        <span class="detail-label">Date Created</span>
+                        <span class="detail-value" id="postDetailsDate">-</span>
+                    </div>
+                </div>
+
+                <div class="detail-row">
+                    <span class="detail-icon">🕐</span>
+                    <div class="detail-info">
+                        <span class="detail-label">Time Created</span>
+                        <span class="detail-value" id="postDetailsTime">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="details-actions">
+                <button class="btn-details-action btn-edit" id="postDetailsEditBtn">
+                    <span>✏️</span>
+                    <span>Edit</span>
+                </button>
+                <button class="btn-details-action btn-delete" id="postDetailsDeleteBtn">
+                    <span>🗑️</span>
+                    <span>Delete</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
 
 
     <script src="/static/js/admin_dashboard.js?v={{ cache_buster }}"></script>
