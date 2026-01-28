@@ -7,7 +7,7 @@ import random
 from datetime import timedelta, datetime, timezone
 from passlib.context import CryptContext
 from database import engine, get_db, Base
-from models import Video, Comment, Settings, Heading
+from models import Video, Comment, Settings, Heading, Post
 from config import settings
 from auth import create_access_token, verify_token
 
@@ -558,8 +558,6 @@ async def get_next_smallheading_number(
         return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
 
 
-# ============= GET SINGLE HEADING (for edit form) =============
-
 @app.get("/api/heading/{heading_id}")
 async def get_heading(
         heading_id: int,
@@ -597,8 +595,6 @@ async def get_heading(
         return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
 
 
-# ============= EDIT HEADING =============
-
 @app.post("/admin/heading/edit/{heading_id}")
 async def edit_heading(
         heading_id: int,
@@ -620,7 +616,6 @@ async def edit_heading(
                 content={"success": False, "error": "Heading not found"}
             )
 
-        # Update fields
         heading.heading_name = heading_name
         heading.visibility = visibility
         if tags:
@@ -641,15 +636,13 @@ async def edit_heading(
         )
 
 
-# ============= DELETE HEADING =============
-
 @app.delete("/admin/heading/delete/{heading_id}")
 async def delete_heading(
         heading_id: int,
         db: Session = Depends(get_db),
         user=Depends(get_current_user)
 ):
-    """Delete a heading and all its children (cascade delete)"""
+    """Delete a heading and all its children INCLUDING POSTS (cascade delete)"""
     if not require_auth(user, required_role="admin"):
         return JSONResponse(status_code=401, content={"success": False, "error": "Unauthorized"})
 
@@ -663,20 +656,33 @@ async def delete_heading(
 
         heading_type = heading.heading_type
 
-        # CASCADE DELETE LOGIC
+        # CASCADE DELETE WITH POSTS
         if heading_type == "heading":
-            # Delete all subheadings under this heading
+            # Get all subheadings under this heading
             subheadings = db.query(Heading).filter(
                 Heading.parent_heading_id == heading_id,
                 Heading.heading_type == "subheading"
             ).all()
 
             for subheading in subheadings:
-                # Delete all small headings under each subheading
+                # Get all small headings under each subheading
+                smallheadings = db.query(Heading).filter(
+                    Heading.parent_heading_id == subheading.id,
+                    Heading.heading_type == "smallheading"
+                ).all()
+
+                # Delete posts under each small heading
+                for smallheading in smallheadings:
+                    db.query(Post).filter(Post.parent_heading_id == smallheading.id).delete()
+
+                # Delete all small headings under this subheading
                 db.query(Heading).filter(
                     Heading.parent_heading_id == subheading.id,
                     Heading.heading_type == "smallheading"
                 ).delete()
+
+                # Delete posts directly under the subheading (if no small headings)
+                db.query(Post).filter(Post.parent_heading_id == subheading.id).delete()
 
             # Delete all subheadings
             db.query(Heading).filter(
@@ -685,13 +691,30 @@ async def delete_heading(
             ).delete()
 
         elif heading_type == "subheading":
-            # Delete all small headings under this subheading
+            # Get all small headings under this subheading
+            smallheadings = db.query(Heading).filter(
+                Heading.parent_heading_id == heading_id,
+                Heading.heading_type == "smallheading"
+            ).all()
+
+            # Delete posts under each small heading
+            for smallheading in smallheadings:
+                db.query(Post).filter(Post.parent_heading_id == smallheading.id).delete()
+
+            # Delete all small headings
             db.query(Heading).filter(
                 Heading.parent_heading_id == heading_id,
                 Heading.heading_type == "smallheading"
             ).delete()
 
-        # Delete the heading itself
+            # Delete posts directly under this subheading (if no small headings)
+            db.query(Post).filter(Post.parent_heading_id == heading_id).delete()
+
+        elif heading_type == "smallheading":
+            # Delete all posts under this small heading
+            db.query(Post).filter(Post.parent_heading_id == heading_id).delete()
+
+        # Finally, delete the heading itself
         db.delete(heading)
         db.commit()
 
@@ -706,3 +729,284 @@ async def delete_heading(
             status_code=500,
             content={"success": False, "error": str(e)}
         )
+
+
+# ============= POST ROUTES =============
+
+@app.post("/admin/post/create")
+async def create_post(
+        parent_heading_id: int = Form(...),
+        post_content: str = Form(...),
+        visibility: str = Form("public"),
+        db: Session = Depends(get_db),
+        user=Depends(get_current_user)
+):
+    """Create a new post under a subheading or small heading"""
+    if not require_auth(user, required_role="admin"):
+        return JSONResponse(status_code=401, content={"success": False, "error": "Unauthorized"})
+
+    try:
+        parent = db.query(Heading).filter(Heading.id == parent_heading_id).first()
+        if not parent:
+            return JSONResponse(
+                status_code=404,
+                content={"success": False, "error": "Parent heading not found"}
+            )
+
+        if parent.heading_type not in ["subheading", "smallheading"]:
+            return JSONResponse(
+                status_code=400,
+                content={"success": False, "error": "Posts can only be created under subheadings or small headings"}
+            )
+
+        if parent.heading_type == "subheading":
+            has_small_headings = db.query(Heading).filter(
+                Heading.parent_heading_id == parent_heading_id,
+                Heading.heading_type == "smallheading"
+            ).count() > 0
+
+            if has_small_headings:
+                return JSONResponse(
+                    status_code=400,
+                    content={"success": False,
+                             "error": "This subheading has small headings. Please add posts to the small headings instead."}
+                )
+
+        new_post = Post(
+            parent_heading_id=parent_heading_id,
+            post_content=post_content,
+            visibility=visibility
+        )
+        db.add(new_post)
+        db.commit()
+        db.refresh(new_post)
+
+        nepal_time = new_post.created_at + NEPAL_OFFSET
+
+        return JSONResponse(content={
+            "success": True,
+            "message": "Post created successfully!",
+            "post": {
+                "id": new_post.id,
+                "parent_heading_id": new_post.parent_heading_id,
+                "post_content": new_post.post_content,
+                "visibility": new_post.visibility,
+                "created_at": nepal_time.strftime("%B %d, %Y %I:%M %p")
+            }
+        })
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": str(e)}
+        )
+
+
+@app.get("/api/posts/by-heading/{heading_id}")
+async def get_posts_by_heading(
+        heading_id: int,
+        db: Session = Depends(get_db),
+        user=Depends(get_current_user)
+):
+    """Get all posts under a specific heading"""
+    if not user:
+        return JSONResponse(status_code=401, content={"error": "Unauthorized"})
+
+    try:
+        posts = db.query(Post).filter(
+            Post.parent_heading_id == heading_id
+        ).order_by(Post.created_at.desc()).all()
+
+        return JSONResponse(content={
+            "success": True,
+            "posts": [
+                {
+                    "id": p.id,
+                    "parent_heading_id": p.parent_heading_id,
+                    "post_content": p.post_content,
+                    "visibility": p.visibility,
+                    "created_at": (p.created_at + NEPAL_OFFSET).strftime("%B %d, %Y %I:%M %p"),
+                    "updated_at": (p.updated_at + NEPAL_OFFSET).strftime("%B %d, %Y %I:%M %p")
+                }
+                for p in posts
+            ]
+        })
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
+
+
+@app.get("/api/post/{post_id}")
+async def get_post(
+        post_id: int,
+        db: Session = Depends(get_db),
+        user=Depends(get_current_user)
+):
+    """Get a single post by ID"""
+    if not user:
+        return JSONResponse(status_code=401, content={"error": "Unauthorized"})
+
+    try:
+        post = db.query(Post).filter(Post.id == post_id).first()
+        if not post:
+            return JSONResponse(
+                status_code=404,
+                content={"success": False, "error": "Post not found"}
+            )
+
+        nepal_time_created = post.created_at + NEPAL_OFFSET
+        nepal_time_updated = post.updated_at + NEPAL_OFFSET
+
+        return JSONResponse(content={
+            "success": True,
+            "post": {
+                "id": post.id,
+                "parent_heading_id": post.parent_heading_id,
+                "post_content": post.post_content,
+                "visibility": post.visibility,
+                "created_at": nepal_time_created.strftime("%B %d, %Y %I:%M %p"),
+                "updated_at": nepal_time_updated.strftime("%B %d, %Y %I:%M %p")
+            }
+        })
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
+
+
+@app.post("/admin/post/edit/{post_id}")
+async def edit_post(
+        post_id: int,
+        post_content: str = Form(...),
+        visibility: str = Form(...),
+        db: Session = Depends(get_db),
+        user=Depends(get_current_user)
+):
+    """Edit an existing post"""
+    if not require_auth(user, required_role="admin"):
+        return JSONResponse(status_code=401, content={"success": False, "error": "Unauthorized"})
+
+    try:
+        post = db.query(Post).filter(Post.id == post_id).first()
+        if not post:
+            return JSONResponse(
+                status_code=404,
+                content={"success": False, "error": "Post not found"}
+            )
+
+        post.post_content = post_content
+        post.visibility = visibility
+        post.updated_at = datetime.utcnow()
+
+        db.commit()
+
+        return JSONResponse(content={
+            "success": True,
+            "message": "Post updated successfully!"
+        })
+
+    except Exception as e:
+        db.rollback()
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": str(e)}
+        )
+
+
+@app.delete("/admin/post/delete/{post_id}")
+async def delete_post(
+        post_id: int,
+        db: Session = Depends(get_db),
+        user=Depends(get_current_user)
+):
+    """Delete a post"""
+    if not require_auth(user, required_role="admin"):
+        return JSONResponse(status_code=401, content={"success": False, "error": "Unauthorized"})
+
+    try:
+        post = db.query(Post).filter(Post.id == post_id).first()
+        if not post:
+            return JSONResponse(
+                status_code=404,
+                content={"success": False, "error": "Post not found"}
+            )
+
+        db.delete(post)
+        db.commit()
+
+        return JSONResponse(content={
+            "success": True,
+            "message": "Post deleted successfully!"
+        })
+
+    except Exception as e:
+        db.rollback()
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": str(e)}
+        )
+
+
+@app.get("/api/check-can-add-post/{heading_id}")
+async def check_can_add_post(
+        heading_id: int,
+        db: Session = Depends(get_db),
+        user=Depends(get_current_user)
+):
+    """Check if posts can be added to this heading"""
+    if not user:
+        return JSONResponse(status_code=401, content={"error": "Unauthorized"})
+
+    try:
+        heading = db.query(Heading).filter(Heading.id == heading_id).first()
+        if not heading:
+            return JSONResponse(content={"can_add": False, "reason": "Heading not found"})
+
+        if heading.heading_type not in ["subheading", "smallheading"]:
+            return JSONResponse(
+                content={"can_add": False, "reason": "Only subheadings and small headings can have posts"})
+
+        if heading.heading_type == "subheading":
+            has_small_headings = db.query(Heading).filter(
+                Heading.parent_heading_id == heading_id,
+                Heading.heading_type == "smallheading"
+            ).count() > 0
+
+            if has_small_headings:
+                return JSONResponse(content={"can_add": False,
+                                             "reason": "This subheading has small headings. Add posts to small headings instead."})
+
+        return JSONResponse(content={"can_add": True, "reason": ""})
+
+    except Exception as e:
+        return JSONResponse(content={"can_add": False, "reason": str(e)})
+
+
+# ============= CLEANUP ORPHANED POSTS (RUN ONCE) =============
+
+@app.post("/admin/cleanup-orphaned-posts")
+async def cleanup_orphaned_posts(
+        db: Session = Depends(get_db),
+        user=Depends(get_current_user)
+):
+    """Remove posts whose parent heading no longer exists"""
+    if not require_auth(user, required_role="admin"):
+        return JSONResponse(status_code=401, content={"success": False, "error": "Unauthorized"})
+
+    try:
+        # Get all posts
+        all_posts = db.query(Post).all()
+        deleted_count = 0
+
+        for post in all_posts:
+            # Check if parent heading exists
+            parent_exists = db.query(Heading).filter(Heading.id == post.parent_heading_id).first()
+            if not parent_exists:
+                db.delete(post)
+                deleted_count += 1
+
+        db.commit()
+
+        return JSONResponse(content={
+            "success": True,
+            "message": f"Cleaned up {deleted_count} orphaned posts"
+        })
+    except Exception as e:
+        db.rollback()
+        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})

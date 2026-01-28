@@ -50,9 +50,25 @@ class Heading(Base):
     id = Column(Integer, primary_key=True, index=True)
     heading_type = Column(String)  # 'heading', 'subheading', 'smallheading'
     heading_name = Column(String)
-    parent_heading_id = Column(Integer, nullable=True)  # NEW - for subheadings under headings
-    subheading_number = Column(Integer, nullable=True)  # NEW - serial number like 1, 2, 3
+    parent_heading_id = Column(Integer, nullable=True)  # for subheadings under headings
+    subheading_number = Column(Integer, nullable=True)  # serial number like 1, 2, 3
     tags = Column(String, nullable=True)
     visibility = Column(String)  # 'public' or 'private'
     created_at = Column(DateTime, default=datetime.utcnow)
 
+    # Relationship to posts
+    posts = relationship("Post", back_populates="parent_heading", cascade="all, delete-orphan")
+
+
+class Post(Base):
+    __tablename__ = "posts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    parent_heading_id = Column(Integer, ForeignKey("headings.id", ondelete="CASCADE"), nullable=False)
+    post_content = Column(Text, nullable=False)
+    visibility = Column(String, default="public")  # 'public' or 'private'
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationship to heading (parent can be subheading or smallheading)
+    parent_heading = relationship("Heading", back_populates="posts")

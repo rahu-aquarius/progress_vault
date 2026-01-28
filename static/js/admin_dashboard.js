@@ -1,6 +1,97 @@
 // admin_dashboard.js
 
 // ============================================
+// CUSTOM ALERT & CONFIRM SYSTEM
+// ============================================
+
+let alertResolve = null;
+
+function customAlert(message, title = 'Alert', type = 'info') {
+    return new Promise((resolve) => {
+        alertResolve = resolve;
+
+        const overlay = document.getElementById('customAlertOverlay');
+        const icon = document.getElementById('customAlertIcon');
+        const titleEl = document.getElementById('customAlertTitle');
+        const messageEl = document.getElementById('customAlertMessage');
+        const actionsEl = document.getElementById('customAlertActions');
+
+        titleEl.textContent = title;
+        messageEl.textContent = message;
+
+        icon.className = 'custom-alert-icon ' + type;
+        const icons = {
+            'info': 'ℹ️',
+            'warning': '⚠️',
+            'error': '❌',
+            'success': '✅'
+        };
+        icon.textContent = icons[type] || icons['info'];
+
+        actionsEl.innerHTML = '<button class="custom-alert-btn custom-alert-btn-confirm" onclick="closeCustomAlert()">OK</button>';
+
+        overlay.classList.add('active');
+    });
+}
+
+function customConfirm(message, title = 'Confirm', type = 'warning') {
+    return new Promise((resolve) => {
+        alertResolve = resolve;
+
+        const overlay = document.getElementById('customAlertOverlay');
+        const icon = document.getElementById('customAlertIcon');
+        const titleEl = document.getElementById('customAlertTitle');
+        const messageEl = document.getElementById('customAlertMessage');
+        const actionsEl = document.getElementById('customAlertActions');
+
+        titleEl.textContent = title;
+        messageEl.textContent = message;
+
+        icon.className = 'custom-alert-icon ' + type;
+        const icons = {
+            'info': 'ℹ️',
+            'warning': '⚠️',
+            'error': '❌',
+            'success': '✅'
+        };
+        icon.textContent = icons[type] || icons['info'];
+
+        if (type === 'error' || message.toLowerCase().includes('delete')) {
+            actionsEl.innerHTML = `
+                <button class="custom-alert-btn custom-alert-btn-cancel" onclick="closeCustomAlert(false)">Cancel</button>
+                <button class="custom-alert-btn custom-alert-btn-delete" onclick="closeCustomAlert(true)">Delete</button>
+            `;
+        } else {
+            actionsEl.innerHTML = `
+                <button class="custom-alert-btn custom-alert-btn-cancel" onclick="closeCustomAlert(false)">No</button>
+                <button class="custom-alert-btn custom-alert-btn-confirm" onclick="closeCustomAlert(true)">Yes</button>
+            `;
+        }
+
+        overlay.classList.add('active');
+    });
+}
+
+function closeCustomAlert(result = true) {
+    const overlay = document.getElementById('customAlertOverlay');
+    overlay.classList.remove('active');
+
+    if (alertResolve) {
+        alertResolve(result);
+        alertResolve = null;
+    }
+}
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        const overlay = document.getElementById('customAlertOverlay');
+        if (overlay && overlay.classList.contains('active')) {
+            closeCustomAlert(false);
+        }
+    }
+});
+
+// ============================================
 // AUTH & SESSION MANAGEMENT
 // ============================================
 
@@ -23,10 +114,8 @@ async function verifyAuth() {
     }
 }
 
-// Run auth check on load
 verifyAuth();
 
-// Auto-logout timer
 let autoLogoutTimer;
 function startAutoLogoutCheck() {
     if (autoLogoutTimer) clearInterval(autoLogoutTimer);
@@ -35,13 +124,13 @@ function startAutoLogoutCheck() {
             const response = await fetch('/api/check-session', { credentials: 'include' });
             if (response.status === 401 || !response.ok) {
                 clearInterval(autoLogoutTimer);
-                alert('Your session has expired. Please login again.');
+                await customAlert('Your session has expired. Please login again.', 'Session Expired', 'warning');
                 window.location.replace('/logout');
             } else {
                 const data = await response.json();
                 if (!data.valid) {
                     clearInterval(autoLogoutTimer);
-                    alert('Your session has expired. Please login again.');
+                    await customAlert('Your session has expired. Please login again.', 'Session Expired', 'warning');
                     window.location.replace('/logout');
                 }
             }
@@ -53,16 +142,14 @@ function startAutoLogoutCheck() {
 }
 startAutoLogoutCheck();
 
-// Prevent back button
 window.history.pushState(null, '', window.location.href);
-window.addEventListener('popstate', function() {
+window.addEventListener('popstate', async function() {
     window.history.pushState(null, '', window.location.href);
-    if (confirm('Are you sure you want to leave the admin dashboard?')) {
+    if (await customConfirm('Are you sure you want to leave the admin dashboard?', 'Leave Dashboard?', 'warning')) {
         window.location.href = '/logout';
     }
 });
 
-// Prevent caching
 window.onpageshow = function(event) {
     if (event.persisted) {
         verifyAuth().then(isValid => {
@@ -81,28 +168,21 @@ function toggleSidebar() {
 }
 
 function showPage(pageId) {
-    // Hide all pages
     document.querySelectorAll('.page-section').forEach(page => {
         page.classList.remove('active');
     });
 
-    // Remove active from all nav items
     document.querySelectorAll('.nav-item').forEach(item => {
         item.classList.remove('active');
     });
 
-    // Show selected page
     document.getElementById(pageId).classList.add('active');
-
-    // Add active to clicked nav item
     event.currentTarget.classList.add('active');
 
-    // Close sidebar on mobile
     if (window.innerWidth <= 768) {
         toggleSidebar();
     }
 
-    // Load headings when switching to manage-content
     if (pageId === 'manage-content') {
         loadHeadings();
     }
@@ -130,17 +210,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 updateGuestAccessStats(data.enabled);
             } catch (error) {
                 console.error('Toggle failed:', error);
-                alert('Failed to toggle guest access');
+                await customAlert('Failed to toggle guest access', 'Error', 'error');
                 e.target.checked = !e.target.checked;
             }
         });
     }
 
-    // Load headings on initial page load
     loadHeadings();
 });
 
-// Update guest access statistics in real-time
 function updateGuestAccessStats(enabled) {
     const statsCards = document.querySelectorAll('.control-card');
     if (statsCards.length > 1) {
@@ -235,8 +313,8 @@ async function changePassword(e) {
 // LOGOUT
 // ============================================
 
-function logout() {
-    if (confirm('Are you sure you want to logout?')) {
+async function logout() {
+    if (await customConfirm('Are you sure you want to logout?', 'Logout?', 'warning')) {
         window.location.href = '/logout';
     }
 }
@@ -247,12 +325,10 @@ function logout() {
 
 let selectedContentType = null;
 
-// Show create options popup
 function showCreateOptions() {
     document.getElementById('createOptionsOverlay').classList.add('active');
 }
 
-// Show confirmation popup with specific message
 function showConfirmation(type) {
     selectedContentType = type;
     closePopup('createOptionsOverlay');
@@ -270,7 +346,6 @@ function showConfirmation(type) {
 async function confirmCreate() {
     closePopup('confirmationOverlay');
 
-    // Set current date and time
     const now = new Date();
     const dateStr = now.toLocaleDateString('en-US', {
         year: 'numeric',
@@ -328,7 +403,6 @@ async function confirmCreate() {
     }
 }
 
-// Load parent headings for dropdown
 async function loadParentHeadings() {
     try {
         const response = await fetch('/api/headings/list', {
@@ -354,7 +428,6 @@ async function loadParentHeadings() {
     }
 }
 
-// Update subheading number when parent is selected
 async function updateSubheadingNumber() {
     const parentId = document.getElementById('parentHeadingSelect').value;
     if (!parentId) {
@@ -376,7 +449,6 @@ async function updateSubheadingNumber() {
     }
 }
 
-// Submit heading form (works for all types)
 async function submitHeading(e) {
     e.preventDefault();
 
@@ -437,12 +509,10 @@ async function submitHeading(e) {
     }
 }
 
-// Close popup by ID
 function closePopup(popupId) {
     document.getElementById(popupId).classList.remove('active');
 }
 
-// Close popups on ESC key
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
         document.querySelectorAll('.popup-overlay.active').forEach(popup => {
@@ -471,7 +541,7 @@ async function loadHeadings() {
         const data = await response.json();
 
         if (data.success && data.headings.length > 0) {
-            displayHeadings(data.headings);
+            await displayHeadings(data.headings);
         } else {
             document.getElementById('headingsContainer').innerHTML = '';
             document.getElementById('noHeadingsPlaceholder').style.display = 'block';
@@ -483,7 +553,7 @@ async function loadHeadings() {
     }
 }
 
-function displayHeadings(headings) {
+async function displayHeadings(headings) {
     const container = document.getElementById('headingsContainer');
     document.getElementById('noHeadingsPlaceholder').style.display = 'none';
 
@@ -493,7 +563,7 @@ function displayHeadings(headings) {
 
     let html = '';
 
-    mainHeadings.forEach(heading => {
+    for (const heading of mainHeadings) {
         html += `
             <div class="heading-card">
                 <div class="heading-card-header">
@@ -524,9 +594,9 @@ function displayHeadings(headings) {
         if (childSubheadings.length > 0) {
             html += '<div class="subheadings-list">';
 
-            childSubheadings.forEach(subheading => {
+            for (const subheading of childSubheadings) {
                 html += `
-                    <div class="subheading-item">
+                    <div class="subheading-item" id="subheading-${subheading.id}">
                         <div class="subheading-header">
                             <span class="subheading-number">${subheading.subheading_number})</span>
                             <span class="subheading-name">${subheading.heading_name}</span>
@@ -540,9 +610,9 @@ function displayHeadings(headings) {
                 const childSmallHeadings = smallheadings.filter(smh => smh.parent_heading_id === subheading.id);
                 if (childSmallHeadings.length > 0) {
                     html += '<div class="smallheadings-list">';
-                    childSmallHeadings.forEach(smallheading => {
+                    for (const smallheading of childSmallHeadings) {
                         html += `
-                            <div class="smallheading-item">
+                            <div class="smallheading-item" id="smallheading-${smallheading.id}">
                                 <div class="smallheading-content">
                                     <span class="smallheading-number">${smallheading.subheading_number})</span>
                                     <span class="smallheading-name">${smallheading.heading_name}</span>
@@ -553,23 +623,37 @@ function displayHeadings(headings) {
                                 </div>
                             </div>
                         `;
-                    });
+
+                        html += `<div id="posts-${smallheading.id}"></div>`;
+                    }
                     html += '</div>';
+                } else {
+                    html += `<div id="posts-${subheading.id}"></div>`;
                 }
 
                 html += '</div>';
-            });
+            }
 
             html += '</div>';
         }
 
         html += '</div>';
-    });
+    }
 
     container.innerHTML = html;
+
+    for (const subheading of subheadings) {
+        const hasSmallHeadings = smallheadings.some(sh => sh.parent_heading_id === subheading.id);
+        if (!hasSmallHeadings) {
+            await loadPosts(subheading.id);
+        }
+    }
+
+    for (const smallheading of smallheadings) {
+        await loadPosts(smallheading.id);
+    }
 }
 
-// Show details popup
 function showDetails(id, type, name, createdAt) {
     const parts = createdAt.split(' ');
     const datePart = `${parts[0]} ${parts[1]} ${parts[2]}`;
@@ -612,14 +696,14 @@ async function editHeading(id) {
         });
 
         if (!response.ok) {
-            alert('Failed to load heading data');
+            await customAlert('Failed to load heading data', 'Error', 'error');
             return;
         }
 
         const data = await response.json();
 
         if (!data.success) {
-            alert('Failed to load heading data');
+            await customAlert('Failed to load heading data', 'Error', 'error');
             return;
         }
 
@@ -635,7 +719,7 @@ async function editHeading(id) {
 
     } catch (error) {
         console.error('Failed to load heading:', error);
-        alert('An error occurred while loading heading data');
+        await customAlert('An error occurred while loading heading data', 'Error', 'error');
     }
 }
 
@@ -831,7 +915,7 @@ async function deleteHeading(id) {
         const data = await response.json();
 
         if (!data.success) {
-            alert('Failed to load heading data');
+            await customAlert('Failed to load heading data', 'Error', 'error');
             return;
         }
 
@@ -841,10 +925,12 @@ async function deleteHeading(id) {
         if (heading.heading_type === 'heading') {
             warningMessage += '\n\n⚠️ WARNING: This will also delete all subheadings and small headings under it!';
         } else if (heading.heading_type === 'subheading') {
-            warningMessage += '\n\n⚠️ WARNING: This will also delete all small headings under it!';
+            warningMessage += '\n\n⚠️ WARNING: This will also delete all small headings and posts under it!';
+        } else if (heading.heading_type === 'smallheading') {
+            warningMessage += '\n\n⚠️ WARNING: This will also delete all posts under it!';
         }
 
-        if (!confirm(warningMessage)) {
+        if (!await customConfirm(warningMessage, 'Delete Confirmation', 'error')) {
             return;
         }
 
@@ -856,15 +942,15 @@ async function deleteHeading(id) {
         const deleteData = await deleteResponse.json();
 
         if (deleteData.success) {
-            alert(deleteData.message);
+            await customAlert(deleteData.message, 'Success', 'success');
             loadHeadings();
         } else {
-            alert('Error: ' + (deleteData.error || 'Failed to delete'));
+            await customAlert('Error: ' + (deleteData.error || 'Failed to delete'), 'Error', 'error');
         }
 
     } catch (error) {
         console.error('Delete failed:', error);
-        alert('An error occurred while deleting');
+        await customAlert('An error occurred while deleting', 'Error', 'error');
     }
 }
 
@@ -953,5 +1039,240 @@ async function updateSmallHeadingNumber() {
         }
     } catch (error) {
         console.error('Failed to get small heading number:', error);
+    }
+}
+
+// ============================================
+// POST FUNCTIONS
+// ============================================
+
+async function loadPosts(headingId) {
+    try {
+        const response = await fetch(`/api/posts/by-heading/${headingId}`, {
+            credentials: 'include'
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            displayPosts(headingId, data.posts);
+        }
+    } catch (error) {
+        console.error('Failed to load posts:', error);
+    }
+}
+
+function displayPosts(headingId, posts) {
+    const container = document.getElementById(`posts-${headingId}`);
+    if (!container) return;
+
+    let html = '<div class="posts-container">';
+
+    if (posts.length > 0) {
+        posts.forEach(post => {
+            html += `
+                <div class="post-item">
+                    <div class="post-header">
+                        <span class="post-visibility ${post.visibility}">${post.visibility.toUpperCase()}</span>
+                        <button class="btn-post-more" onclick="showPostDetails(${post.id}, ${headingId}, '${post.created_at}')">⋮</button>
+                    </div>
+                    <div class="post-content">${escapeHtml(post.post_content)}</div>
+                </div>
+            `;
+        });
+    }
+
+    html += `
+        <button class="btn-add-post" onclick="openCreatePost(${headingId})">
+            <span>➕</span>
+            <span>Add Post</span>
+        </button>
+    </div>`;
+
+    container.innerHTML = html;
+}
+
+
+
+function showPostDetails(postId, headingId, createdAt) {
+    // Parse date and time
+    const parts = createdAt.split(' ');
+    const datePart = `${parts[0]} ${parts[1]} ${parts[2]}`;
+    const timePart = `${parts[3]} ${parts[4]}`;
+
+    // Set date and time
+    document.getElementById('postDetailsDate').textContent = datePart;
+    document.getElementById('postDetailsTime').textContent = timePart;
+
+    // Set button actions
+    document.getElementById('postDetailsEditBtn').onclick = () => {
+        closePopup('postDetailsOverlay');
+        openEditPost(postId, headingId);
+    };
+
+    document.getElementById('postDetailsDeleteBtn').onclick = () => {
+        closePopup('postDetailsOverlay');
+        deletePost(postId, headingId);
+    };
+
+    // Show popup
+    document.getElementById('postDetailsOverlay').classList.add('active');
+}
+
+
+
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function openCreatePost(headingId) {
+    document.getElementById('postParentHeadingId').value = headingId;
+    document.getElementById('createPostForm').reset();
+    document.getElementById('formErrorPost').style.display = 'none';
+    document.getElementById('formSuccessPost').style.display = 'none';
+    document.getElementById('createPostOverlay').classList.add('active');
+}
+
+async function submitPost(e) {
+    e.preventDefault();
+
+    const errorMsg = document.getElementById('formErrorPost');
+    const successMsg = document.getElementById('formSuccessPost');
+
+    errorMsg.style.display = 'none';
+    successMsg.style.display = 'none';
+
+    try {
+        const formData = new FormData(e.target);
+
+        const response = await fetch('/admin/post/create', {
+            method: 'POST',
+            credentials: 'include',
+            body: formData
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            successMsg.textContent = data.message;
+            successMsg.style.display = 'block';
+
+            const headingId = document.getElementById('postParentHeadingId').value;
+            await loadPosts(headingId);
+
+            setTimeout(() => {
+                closePopup('createPostOverlay');
+            }, 1500);
+        } else {
+            errorMsg.textContent = data.error || 'Failed to create post';
+            errorMsg.style.display = 'block';
+        }
+    } catch (error) {
+        errorMsg.textContent = 'An error occurred. Please try again.';
+        errorMsg.style.display = 'block';
+    }
+}
+
+let currentEditingHeadingId = null;
+
+async function openEditPost(postId, headingId) {
+    currentEditingHeadingId = headingId;
+
+    try {
+        const response = await fetch(`/api/post/${postId}`, {
+            credentials: 'include'
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            document.getElementById('editPostId').value = data.post.id;
+            document.getElementById('editPostContent').value = data.post.post_content;
+
+            document.getElementById('editPostCreatedDate').textContent = data.post.created_at.split(' ').slice(0, 3).join(' ');
+            document.getElementById('editPostCreatedTime').textContent = data.post.created_at.split(' ').slice(3).join(' ');
+
+            const visibilityRadio = document.querySelector(
+                `#editPostForm input[name="visibility"][value="${data.post.visibility}"]`
+            );
+            if (visibilityRadio) visibilityRadio.checked = true;
+
+            document.getElementById('editFormErrorPost').style.display = 'none';
+            document.getElementById('editFormSuccessPost').style.display = 'none';
+            document.getElementById('editPostOverlay').classList.add('active');
+        }
+    } catch (error) {
+        await customAlert('Failed to load post data', 'Error', 'error');
+    }
+}
+
+async function submitEditPost(e) {
+    e.preventDefault();
+
+    const errorMsg = document.getElementById('editFormErrorPost');
+    const successMsg = document.getElementById('editFormSuccessPost');
+
+    errorMsg.style.display = 'none';
+    successMsg.style.display = 'none';
+
+    const postId = document.getElementById('editPostId').value;
+
+    try {
+        const formData = new FormData(e.target);
+
+        const response = await fetch(`/admin/post/edit/${postId}`, {
+            method: 'POST',
+            credentials: 'include',
+            body: formData
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            successMsg.textContent = data.message;
+            successMsg.style.display = 'block';
+
+            if (currentEditingHeadingId) {
+                await loadPosts(currentEditingHeadingId);
+            }
+
+            setTimeout(() => {
+                closePopup('editPostOverlay');
+            }, 1500);
+        } else {
+            errorMsg.textContent = data.error || 'Failed to update post';
+            errorMsg.style.display = 'block';
+        }
+    } catch (error) {
+        errorMsg.textContent = 'An error occurred. Please try again.';
+        errorMsg.style.display = 'block';
+    }
+}
+
+async function deletePost(postId, headingId) {
+    document.querySelectorAll('.post-more-dropdown').forEach(dropdown => {
+        dropdown.classList.remove('active');
+    });
+
+    if (!await customConfirm('Are you sure you want to delete this post?', 'Delete Post?', 'error')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/admin/post/delete/${postId}`, {
+            method: 'DELETE',
+            credentials: 'include'
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            await loadPosts(headingId);
+        } else {
+            await customAlert('Error: ' + (data.error || 'Failed to delete post'), 'Error', 'error');
+        }
+    } catch (error) {
+        await customAlert('An error occurred while deleting the post', 'Error', 'error');
     }
 }
