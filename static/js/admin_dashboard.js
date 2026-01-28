@@ -1037,10 +1037,7 @@ async function updateSmallHeadingNumber() {
     }
 }
 
-// ============================================
 // POST FUNCTIONS
-// ============================================
-
 async function loadPosts(headingId) {
     try {
         const response = await fetch(`/api/posts/by-heading/${headingId}`, {
@@ -1064,13 +1061,20 @@ function displayPosts(headingId, posts) {
 
     if (posts.length > 0) {
         posts.forEach(post => {
+            const videoId = extractYouTubeID(post.video_url);
+            const thumbnail = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+
             html += `
-                <div class="post-item">
+                <div class="post-item" onclick="playVideo('${videoId}', '${escapeHtml(post.post_title)}')">
+                    <div class="post-video-thumbnail">
+                        <img src="${thumbnail}" alt="${escapeHtml(post.post_title)}" onerror="this.src='https://img.youtube.com/vi/${videoId}/hqdefault.jpg'">
+                        <div class="video-play-overlay">▶</div>
+                        <div class="post-title-overlay">${escapeHtml(post.post_title)}</div>
+                    </div>
                     <div class="post-header">
                         <span class="post-visibility ${post.visibility}">${post.visibility.toUpperCase()}</span>
-                        <button class="btn-post-more" onclick="showPostDetails(${post.id}, ${headingId}, '${post.created_at}')">⋮</button>
+                        <button class="btn-post-more" onclick="showPostMorePopup(event, ${post.id}, ${headingId}, '${post.created_at}', '${escapeHtml(post.post_description || '')}')">⋮</button>
                     </div>
-                    <div class="post-content">${escapeHtml(post.post_content)}</div>
                 </div>
             `;
         });
@@ -1086,35 +1090,43 @@ function displayPosts(headingId, posts) {
     container.innerHTML = html;
 }
 
+// Show Post More Popup
+function showPostMorePopup(event, postId, headingId, createdAt, description) {
+    event.stopPropagation();
 
-
-function showPostDetails(postId, headingId, createdAt) {
-    // Parse date and time
-    const parts = createdAt.split(' ');
-    const datePart = `${parts[0]} ${parts[1]} ${parts[2]}`;
-    const timePart = `${parts[3]} ${parts[4]}`;
-
-    // Set date and time
-    document.getElementById('postDetailsDate').textContent = datePart;
-    document.getElementById('postDetailsTime').textContent = timePart;
-
-    // Set button actions
-    document.getElementById('postDetailsEditBtn').onclick = () => {
-        closePopup('postDetailsOverlay');
-        openEditPost(postId, headingId);
+    window.currentPostData = {
+        postId: postId,
+        headingId: headingId,
+        createdAt: createdAt,
+        description: description
     };
 
-    document.getElementById('postDetailsDeleteBtn').onclick = () => {
-        closePopup('postDetailsOverlay');
-        deletePost(postId, headingId);
-    };
-
-    // Show popup
-    document.getElementById('postDetailsOverlay').classList.add('active');
+    document.getElementById('postMoreOverlay').classList.add('active');
 }
 
+// Close Post More Popup
+function closePostMorePopup() {
+    document.getElementById('postMoreOverlay').classList.remove('active');
+}
 
+// Post Action: Edit
+function postActionEdit() {
+    closePostMorePopup();
+    openEditPost(window.currentPostData.postId, window.currentPostData.headingId);
+}
 
+// Post Action: Description
+function postActionDescription() {
+    closePostMorePopup();
+    document.getElementById('postDescriptionContent').textContent = window.currentPostData.description || 'No description available.';
+    document.getElementById('postDescriptionOverlay').classList.add('active');
+}
+
+// Post Action: Delete
+async function postActionDelete() {
+    closePostMorePopup();
+    await deletePost(window.currentPostData.postId, window.currentPostData.headingId);
+}
 
 function escapeHtml(text) {
     const div = document.createElement('div');
@@ -1173,6 +1185,7 @@ async function submitPost(e) {
 let currentEditingHeadingId = null;
 
 async function openEditPost(postId, headingId) {
+    event.stopPropagation();
     currentEditingHeadingId = headingId;
 
     try {
@@ -1183,7 +1196,9 @@ async function openEditPost(postId, headingId) {
 
         if (data.success) {
             document.getElementById('editPostId').value = data.post.id;
-            document.getElementById('editPostContent').value = data.post.post_content;
+            document.getElementById('editPostTitle').value = data.post.post_title;
+            document.getElementById('editPostVideoUrl').value = data.post.video_url;
+            document.getElementById('editPostDescription').value = data.post.post_description || '';
 
             document.getElementById('editPostCreatedDate').textContent = data.post.created_at.split(' ').slice(0, 3).join(' ');
             document.getElementById('editPostCreatedTime').textContent = data.post.created_at.split(' ').slice(3).join(' ');
@@ -1193,8 +1208,8 @@ async function openEditPost(postId, headingId) {
             );
             if (visibilityRadio) visibilityRadio.checked = true;
 
-            document.getElementById('editFormErrorPost').style.display = 'none';
-            document.getElementById('editFormSuccessPost').style.display = 'none';
+            document.getElementById('formErrorEditPost').style.display = 'none';
+            document.getElementById('formSuccessEditPost').style.display = 'none';
             document.getElementById('editPostOverlay').classList.add('active');
         }
     } catch (error) {
@@ -1205,8 +1220,8 @@ async function openEditPost(postId, headingId) {
 async function submitEditPost(e) {
     e.preventDefault();
 
-    const errorMsg = document.getElementById('editFormErrorPost');
-    const successMsg = document.getElementById('editFormSuccessPost');
+    const errorMsg = document.getElementById('formErrorEditPost');
+    const successMsg = document.getElementById('formSuccessEditPost');
 
     errorMsg.style.display = 'none';
     successMsg.style.display = 'none';
@@ -1246,10 +1261,6 @@ async function submitEditPost(e) {
 }
 
 async function deletePost(postId, headingId) {
-    document.querySelectorAll('.post-more-dropdown').forEach(dropdown => {
-        dropdown.classList.remove('active');
-    });
-
     if (!await customConfirm('Are you sure you want to delete this post?', 'Delete Post?', 'error')) {
         return;
     }
@@ -1271,3 +1282,128 @@ async function deletePost(postId, headingId) {
         await customAlert('An error occurred while deleting the post', 'Error', 'error');
     }
 }
+
+// ============================================
+// VIDEO POST FUNCTIONS
+// ============================================
+
+// Extract YouTube Video ID
+function extractYouTubeID(url) {
+    if (!url) return '';
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : '';
+}
+
+// Global player reference
+let currentPlayer = null;
+
+// Play Video with Plyr (FIXED - NO CUT OFF)
+function playVideo(videoId, title) {
+    event.stopPropagation();
+
+    // Close any existing player
+    if (currentPlayer) {
+        currentPlayer.destroy();
+        currentPlayer = null;
+    }
+
+    const modal = document.createElement('div');
+    modal.className = 'video-modal';
+    modal.innerHTML = `
+        <div class="video-modal-backdrop" onclick="closeVideoModal(this)"></div>
+        <div class="video-modal-content">
+            <div class="video-modal-header">
+                <h3>${title}</h3>
+                <button class="video-modal-close" onclick="closeVideoModal(this)">✕</button>
+            </div>
+            <div class="video-player-wrapper">
+                <div id="player" data-plyr-provider="youtube" data-plyr-embed-id="${videoId}"></div>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Prevent body scroll but allow modal scroll
+    document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.width = '100%';
+
+    setTimeout(() => modal.classList.add('active'), 10);
+
+    // Initialize Plyr with better sizing
+    setTimeout(() => {
+        const playerElement = document.getElementById('player');
+        if (playerElement) {
+            currentPlayer = new Plyr(playerElement, {
+                controls: [
+                    'play-large',
+                    'play',
+                    'progress',
+                    'current-time',
+                    'mute',
+                    'volume',
+                    'settings',
+                    'fullscreen'
+                ],
+                youtube: {
+                    noCookie: true,
+                    rel: 0,
+                    showinfo: 0,
+                    iv_load_policy: 3,
+                    modestbranding: 1
+                },
+                hideControls: false,
+                ratio: '16:9',
+                fullscreen: {
+                    enabled: true,
+                    fallback: true,
+                    iosNative: true
+                }
+            });
+
+            // Auto-play when ready
+            currentPlayer.on('ready', () => {
+                currentPlayer.play();
+            });
+        }
+    }, 100);
+}
+
+
+// Close Video Modal (FIXED SCROLL RESTORE)
+function closeVideoModal(element) {
+    const modal = element.closest('.video-modal');
+    if (!modal) return;
+
+    // Destroy player
+    if (currentPlayer) {
+        currentPlayer.destroy();
+        currentPlayer = null;
+    }
+
+    modal.classList.remove('active');
+
+    // Restore body scroll properly
+    document.body.style.overflow = '';
+    document.body.style.position = '';
+    document.body.style.width = '';
+
+    setTimeout(() => modal.remove(), 300);
+}
+
+
+// Close video modal on ESC key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        const videoModal = document.querySelector('.video-modal.active');
+        if (videoModal) {
+            const closeBtn = videoModal.querySelector('.video-modal-close');
+            if (closeBtn) {
+                closeVideoModal(closeBtn);
+            }
+        }
+    }
+});
+

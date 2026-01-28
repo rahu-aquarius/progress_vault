@@ -8,6 +8,14 @@
     <meta http-equiv="Expires" content="0">
     <title>Admin Dashboard - Progress Vault</title>
     <link rel="stylesheet" href="/static/css/admin_dashboard.css?v={{ cache_buster }}">
+
+    <!-- Plyr CSS -->
+<link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
+
+<!-- Plyr JS -->
+<script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
+
+
 </head>
 <body>
 
@@ -696,106 +704,139 @@
         </div>
     </div>
 
-    <!-- CREATE POST POPUP -->
-    <div class="popup-overlay" id="createPostOverlay" onclick="closePopup('createPostOverlay')">
-        <div class="popup-container form-popup" onclick="event.stopPropagation()">
-            <div class="popup-header">
-                <h3>Create Post</h3>
-                <button class="popup-close" onclick="closePopup('createPostOverlay')">✕</button>
+   <!-- CREATE POST POPUP -->
+<div class="popup-overlay" id="createPostOverlay" onclick="closePopup('createPostOverlay')">
+    <div class="popup-container form-popup" onclick="event.stopPropagation()">
+        <div class="popup-header">
+            <h3>Create Video Post</h3>
+            <button class="popup-close" onclick="closePopup('createPostOverlay')">✕</button>
+        </div>
+
+        <form id="createPostForm" onsubmit="submitPost(event)">
+            <input type="hidden" id="postParentHeadingId" name="parent_heading_id">
+
+            <div class="form-content-grid">
+                <!-- Title -->
+                <div class="form-group">
+                    <label class="form-label">Title (2-3 words)</label>
+                    <input type="text" class="form-input" name="post_title" placeholder="e.g., Python Basics" required maxlength="50">
+                </div>
+
+                <!-- YouTube URL -->
+                <div class="form-group">
+                    <label class="form-label">YouTube Video URL</label>
+                    <input type="url" class="form-input" name="video_url" placeholder="https://youtube.com/watch?v=..." required>
+                    <small style="color: #888; font-size: 0.8rem;">Paste unlisted or public YouTube video link</small>
+                </div>
+
+                <!-- Description -->
+                <div class="form-group" style="grid-column: 1 / -1;">
+                    <label class="form-label">Description (30-40 words)</label>
+                    <textarea class="form-textarea" name="post_description" rows="4" placeholder="Brief description about the video..." maxlength="300"></textarea>
+                </div>
+
+                <!-- Visibility -->
+                <div class="form-group">
+                    <label class="form-label">Visibility</label>
+                    <div class="radio-group">
+                        <label class="radio-label">
+                            <input type="radio" name="visibility" value="public" checked>
+                            <span class="radio-custom"></span>
+                            <span>Public</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="visibility" value="private">
+                            <span class="radio-custom"></span>
+                            <span>Private</span>
+                        </label>
+                    </div>
+                </div>
             </div>
 
-            <form id="createPostForm" onsubmit="submitPost(event)">
-                <input type="hidden" id="postParentHeadingId" name="parent_heading_id">
+            <div class="form-message error-message" id="formErrorPost"></div>
+            <div class="form-message success-message" id="formSuccessPost"></div>
 
-                <div class="form-content-grid">
-                    <div class="form-group" style="grid-column: 1 / -1;">
-                        <label class="form-label">Post Content</label>
-                        <textarea class="form-textarea" name="post_content" rows="8" placeholder="Write your post content here..." required></textarea>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Visibility</label>
-                        <div class="radio-group">
-                            <label class="radio-label">
-                                <input type="radio" name="visibility" value="public" checked>
-                                <span class="radio-custom"></span>
-                                <span>Public</span>
-                            </label>
-                            <label class="radio-label">
-                                <input type="radio" name="visibility" value="private">
-                                <span class="radio-custom"></span>
-                                <span>Private</span>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="form-message error-message" id="formErrorPost"></div>
-                <div class="form-message success-message" id="formSuccessPost"></div>
-
-                <div class="form-actions">
-                    <button type="button" class="btn-secondary" onclick="closePopup('createPostOverlay')">Cancel</button>
-                    <button type="submit" class="btn-primary">Create Post</button>
-                </div>
-            </form>
-        </div>
+            <div class="form-actions">
+                <button type="button" class="btn-secondary" onclick="closePopup('createPostOverlay')">Cancel</button>
+                <button type="submit" class="btn-primary">Create Post</button>
+            </div>
+        </form>
     </div>
+</div>
+
+
+
 
     <!-- EDIT POST POPUP -->
-    <div class="popup-overlay" id="editPostOverlay" onclick="closePopup('editPostOverlay')">
-        <div class="popup-container form-popup" onclick="event.stopPropagation()">
-            <div class="popup-header">
-                <h3>Edit Post</h3>
-                <button class="popup-close" onclick="closePopup('editPostOverlay')">✕</button>
-            </div>
-
-            <div class="post-datetime-display">
-                <div class="datetime-item">
-                    <span>📅</span>
-                    <span id="editPostCreatedDate">-</span>
-                </div>
-                <div class="datetime-item">
-                    <span>🕐</span>
-                    <span id="editPostCreatedTime">-</span>
-                </div>
-            </div>
-
-            <form id="editPostForm" onsubmit="submitEditPost(event)">
-                <input type="hidden" id="editPostId">
-
-                <div class="form-content-grid">
-                    <div class="form-group" style="grid-column: 1 / -1;">
-                        <label class="form-label">Post Content</label>
-                        <textarea class="form-textarea" id="editPostContent" name="post_content" rows="8" required></textarea>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Visibility</label>
-                        <div class="radio-group">
-                            <label class="radio-label">
-                                <input type="radio" name="visibility" value="public">
-                                <span class="radio-custom"></span>
-                                <span>Public</span>
-                            </label>
-                            <label class="radio-label">
-                                <input type="radio" name="visibility" value="private">
-                                <span class="radio-custom"></span>
-                                <span>Private</span>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="form-message error-message" id="editFormErrorPost"></div>
-                <div class="form-message success-message" id="editFormSuccessPost"></div>
-
-                <div class="form-actions">
-                    <button type="button" class="btn-secondary" onclick="closePopup('editPostOverlay')">Cancel</button>
-                    <button type="submit" class="btn-primary">Update Post</button>
-                </div>
-            </form>
+<div class="popup-overlay" id="editPostOverlay" onclick="closePopup('editPostOverlay')">
+    <div class="popup-container form-popup" onclick="event.stopPropagation()">
+        <div class="popup-header">
+            <h3>Edit Video Post</h3>
+            <button class="popup-close" onclick="closePopup('editPostOverlay')">✕</button>
         </div>
+
+        <div class="post-datetime-display">
+            <div class="datetime-item">
+                <span>📅</span>
+                <span id="editPostCreatedDate">-</span>
+            </div>
+            <div class="datetime-item">
+                <span>🕐</span>
+                <span id="editPostCreatedTime">-</span>
+            </div>
+        </div>
+
+        <form id="editPostForm" onsubmit="submitEditPost(event)">
+            <input type="hidden" id="editPostId">
+
+            <div class="form-content-grid">
+                <!-- Title -->
+                <div class="form-group">
+                    <label class="form-label">Title (2-3 words)</label>
+                    <input type="text" class="form-input" id="editPostTitle" name="post_title" required maxlength="50">
+                </div>
+
+                <!-- YouTube URL -->
+                <div class="form-group">
+                    <label class="form-label">YouTube Video URL</label>
+                    <input type="url" class="form-input" id="editPostVideoUrl" name="video_url" required>
+                </div>
+
+                <!-- Description -->
+                <div class="form-group" style="grid-column: 1 / -1;">
+                    <label class="form-label">Description (30-40 words)</label>
+                    <textarea class="form-textarea" id="editPostDescription" name="post_description" rows="4" maxlength="300"></textarea>
+                </div>
+
+                <!-- Visibility -->
+                <div class="form-group">
+                    <label class="form-label">Visibility</label>
+                    <div class="radio-group">
+                        <label class="radio-label">
+                            <input type="radio" name="visibility" value="public">
+                            <span class="radio-custom"></span>
+                            <span>Public</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="visibility" value="private">
+                            <span class="radio-custom"></span>
+                            <span>Private</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-message error-message" id="formErrorEditPost"></div>
+            <div class="form-message success-message" id="formSuccessEditPost"></div>
+
+            <div class="form-actions">
+                <button type="button" class="btn-secondary" onclick="closePopup('editPostOverlay')">Cancel</button>
+                <button type="submit" class="btn-primary">Update Post</button>
+            </div>
+        </form>
     </div>
+</div>
+
 
         <!-- POST DETAILS POPUP -->
     <div class="popup-overlay" id="postDetailsOverlay" onclick="closePopup('postDetailsOverlay')">
@@ -837,8 +878,55 @@
     </div>
 
 
+    <!-- POST DESCRIPTION POPUP -->
+<div class="popup-overlay" id="postDescriptionOverlay" onclick="closePopup('postDescriptionOverlay')">
+    <div class="popup-container details-popup" onclick="event.stopPropagation()">
+        <div class="popup-header">
+            <h3>Video Description</h3>
+            <button class="popup-close" onclick="closePopup('postDescriptionOverlay')">✕</button>
+        </div>
+
+        <div class="details-content">
+            <div class="post-description-content" id="postDescriptionContent">
+                Description will appear here...
+            </div>
+        </div>
+
+        <div class="form-actions" style="border-top: 1px solid rgba(255, 255, 255, 0.1);">
+            <button class="btn-secondary" onclick="closePopup('postDescriptionOverlay')" style="width: 100%;">Close</button>
+        </div>
+    </div>
+</div>
 
 
+<!-- POST MORE POPUP -->
+<div class="post-more-overlay" id="postMoreOverlay" onclick="if(event.target === this) closePostMorePopup()">
+    <div class="post-more-container">
+        <div class="post-more-header">
+            <h3>Post Actions</h3>
+            <button class="post-more-close" onclick="closePostMorePopup()">✕</button>
+        </div>
+
+        <div class="post-more-content">
+            <div class="post-more-actions">
+                <button class="post-action-btn" onclick="postActionEdit()">
+                    <span>✏️</span>
+                    <span>Edit Post</span>
+                </button>
+
+                <button class="post-action-btn" onclick="postActionDescription()">
+                    <span>📄</span>
+                    <span>View Description</span>
+                </button>
+
+                <button class="post-action-btn delete" onclick="postActionDelete()">
+                    <span>🗑️</span>
+                    <span>Delete Post</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
 
     <script src="/static/js/admin_dashboard.js?v={{ cache_buster }}"></script>
