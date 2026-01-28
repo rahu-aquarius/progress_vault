@@ -510,7 +510,10 @@ function displayHeadings(headings) {
             <div class="heading-card">
                 <div class="heading-card-header">
                     <span class="heading-type-badge heading">HEADING</span>
-                    <span class="heading-visibility ${heading.visibility}">${heading.visibility.toUpperCase()}</span>
+                    <div class="heading-badges">
+                        <span class="heading-visibility ${heading.visibility}">${heading.visibility.toUpperCase()}</span>
+                        <button class="btn-more" onclick="showDetails(${heading.id}, 'heading', '${heading.heading_name}', '${heading.created_at}')">⋮</button>
+                    </div>
                 </div>
 
                 <h3 class="heading-card-title">${heading.heading_name}</h3>
@@ -527,11 +530,6 @@ function displayHeadings(headings) {
                     </div>
                     ` : ''}
                 </div>
-
-                <div class="heading-card-actions">
-                    <button class="btn-heading-action" onclick="editHeading(${heading.id})">Edit</button>
-                    <button class="btn-heading-action btn-heading-delete" onclick="deleteHeading(${heading.id})">Delete</button>
-                </div>
         `;
 
         // Display subheadings under this heading
@@ -545,11 +543,10 @@ function displayHeadings(headings) {
                         <div class="subheading-header">
                             <span class="subheading-number">${subheading.subheading_number})</span>
                             <span class="subheading-name">${subheading.heading_name}</span>
-                            <span class="heading-visibility ${subheading.visibility}">${subheading.visibility.toUpperCase()}</span>
-                        </div>
-                        <div class="subheading-actions">
-                            <button class="btn-subheading-action" onclick="editHeading(${subheading.id})">Edit</button>
-                            <button class="btn-subheading-action btn-heading-delete" onclick="deleteHeading(${subheading.id})">Delete</button>
+                            <div class="subheading-badges">
+                                <span class="heading-visibility ${subheading.visibility}">${subheading.visibility.toUpperCase()}</span>
+                                <button class="btn-more" onclick="showDetails(${subheading.id}, 'subheading', '${subheading.heading_name}', '${subheading.created_at}')">⋮</button>
+                            </div>
                         </div>
                 `;
 
@@ -563,11 +560,10 @@ function displayHeadings(headings) {
                                 <div class="smallheading-content">
                                     <span class="smallheading-number">${smallheading.subheading_number})</span>
                                     <span class="smallheading-name">${smallheading.heading_name}</span>
-                                    <span class="heading-visibility ${smallheading.visibility}">${smallheading.visibility.toUpperCase()}</span>
                                 </div>
-                                <div class="smallheading-actions">
-                                    <button class="btn-smallheading-action" onclick="editHeading(${smallheading.id})">Edit</button>
-                                    <button class="btn-smallheading-action btn-heading-delete" onclick="deleteHeading(${smallheading.id})">Delete</button>
+                                <div class="smallheading-badges">
+                                    <span class="heading-visibility ${smallheading.visibility}">${smallheading.visibility.toUpperCase()}</span>
+                                    <button class="btn-more" onclick="showDetails(${smallheading.id}, 'smallheading', '${smallheading.heading_name}', '${smallheading.created_at}')">⋮</button>
                                 </div>
                             </div>
                         `;
@@ -575,7 +571,7 @@ function displayHeadings(headings) {
                     html += '</div>'; // Close smallheadings-list
                 }
 
-                html += '</div>'; // Close subheading-item (AFTER small headings)
+                html += '</div>'; // Close subheading-item
             });
 
             html += '</div>'; // Close subheadings-list
@@ -585,6 +581,39 @@ function displayHeadings(headings) {
     });
 
     container.innerHTML = html;
+}
+
+// Show details popup
+function showDetails(id, type, name, createdAt) {
+    // Parse the date string (format: "January 28, 2026 11:07 PM")
+    const parts = createdAt.split(' ');
+    const datePart = `${parts[0]} ${parts[1]} ${parts[2]}`; // "January 28, 2026"
+    const timePart = `${parts[3]} ${parts[4]}`; // "11:07 PM"
+
+    // Update popup title
+    const titleMap = {
+        'heading': 'Heading Details',
+        'subheading': 'Sub Heading Details',
+        'smallheading': 'Small Heading Details'
+    };
+    document.getElementById('detailsPopupTitle').textContent = titleMap[type];
+
+    // Update date and time
+    document.getElementById('detailsDate').textContent = datePart;
+    document.getElementById('detailsTime').textContent = timePart;
+
+    // Update button actions
+    document.getElementById('detailsEditBtn').onclick = () => {
+        closePopup('detailsOverlay');
+        editHeading(id);
+    };
+    document.getElementById('detailsDeleteBtn').onclick = () => {
+        closePopup('detailsOverlay');
+        deleteHeading(id);
+    };
+
+    // Show popup
+    document.getElementById('detailsOverlay').classList.add('active');
 }
 
 

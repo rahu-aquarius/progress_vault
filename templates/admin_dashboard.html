@@ -478,6 +478,47 @@
         </div>
     </div>
 
+
+    <!-- Details Popup - Shows date/time and actions -->
+<div class="popup-overlay" id="detailsOverlay" onclick="closePopup('detailsOverlay')">
+    <div class="popup-container details-popup" onclick="event.stopPropagation()">
+        <div class="popup-header">
+            <h3 id="detailsPopupTitle">Heading Details</h3>
+            <button class="popup-close" onclick="closePopup('detailsOverlay')">✕</button>
+        </div>
+
+        <div class="details-content">
+            <div class="detail-row">
+                <span class="detail-icon">📅</span>
+                <div class="detail-info">
+                    <span class="detail-label">Date Created</span>
+                    <span class="detail-value" id="detailsDate">-</span>
+                </div>
+            </div>
+
+            <div class="detail-row">
+                <span class="detail-icon">🕐</span>
+                <div class="detail-info">
+                    <span class="detail-label">Time Created</span>
+                    <span class="detail-value" id="detailsTime">-</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="details-actions">
+            <button class="btn-details-action btn-edit" id="detailsEditBtn">
+                <span>✏️</span>
+                <span>Edit</span>
+            </button>
+            <button class="btn-details-action btn-delete" id="detailsDeleteBtn">
+                <span>🗑️</span>
+                <span>Delete</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+
     <script src="/static/js/admin_dashboard.js?v={{ cache_buster }}"></script>
 
 </body>
