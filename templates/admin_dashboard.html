@@ -519,6 +519,199 @@
 </div>
 
 
+    <!-- EDIT FORM POPUPS -->
+
+<!-- Edit Form - HEADING -->
+<div class="popup-overlay" id="editFormOverlayHeading" onclick="closePopup('editFormOverlayHeading')">
+    <div class="popup-container form-popup" onclick="event.stopPropagation()">
+        <div class="popup-header">
+            <h3>Edit Heading</h3>
+            <button class="popup-close" onclick="closePopup('editFormOverlayHeading')">✕</button>
+        </div>
+
+        <form id="editFormHeading" class="heading-form" onsubmit="submitEditHeading(event, 'heading')">
+            <input type="hidden" id="editHeadingId">
+
+            <div class="form-content-grid">
+                <div class="form-group">
+                    <label class="form-label">Heading Name</label>
+                    <input type="text" class="form-input" id="editHeadingName" name="heading_name" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Tags</label>
+                    <select class="form-input" name="tags">
+                        <option value="">-- No tags available yet --</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Visibility</label>
+                    <div class="radio-group">
+                        <label class="radio-label">
+                            <input type="radio" name="visibility" value="public">
+                            <span class="radio-custom"></span>
+                            <span>Public</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="visibility" value="private">
+                            <span class="radio-custom"></span>
+                            <span>Private</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-message error-message" id="editFormErrorHeading"></div>
+            <div class="form-message success-message" id="editFormSuccessHeading"></div>
+
+            <div class="form-actions">
+                <button type="button" class="btn-secondary" onclick="closePopup('editFormOverlayHeading')">Cancel</button>
+                <button type="submit" class="btn-primary">Update Heading</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Form - SUBHEADING -->
+<div class="popup-overlay" id="editFormOverlaySubheading" onclick="closePopup('editFormOverlaySubheading')">
+    <div class="popup-container form-popup" onclick="event.stopPropagation()">
+        <div class="popup-header">
+            <h3>Edit Sub Heading</h3>
+            <button class="popup-close" onclick="closePopup('editFormOverlaySubheading')">✕</button>
+        </div>
+
+        <form id="editFormSubheading" class="heading-form" onsubmit="submitEditHeading(event, 'subheading')">
+            <input type="hidden" id="editSubheadingId">
+
+            <div class="form-content-grid">
+                <div class="form-group">
+                    <label class="form-label">Parent Heading</label>
+                    <select class="form-input" id="editParentHeadingSelect" disabled>
+                        <option value="">-- Select a heading --</option>
+                    </select>
+                    <small style="color: #888; font-size: 0.8rem;">Cannot change parent heading</small>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Sub Heading Number</label>
+                    <input type="text" class="form-input readonly-input" id="editSubheadingNumber" readonly>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Sub Heading Name</label>
+                    <input type="text" class="form-input" id="editSubheadingName" name="heading_name" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Tags</label>
+                    <select class="form-input" name="tags">
+                        <option value="">-- No tags available yet --</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Visibility</label>
+                    <div class="radio-group">
+                        <label class="radio-label">
+                            <input type="radio" name="visibility" value="public">
+                            <span class="radio-custom"></span>
+                            <span>Public</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="visibility" value="private">
+                            <span class="radio-custom"></span>
+                            <span>Private</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-message error-message" id="editFormErrorSubheading"></div>
+            <div class="form-message success-message" id="editFormSuccessSubheading"></div>
+
+            <div class="form-actions">
+                <button type="button" class="btn-secondary" onclick="closePopup('editFormOverlaySubheading')">Cancel</button>
+                <button type="submit" class="btn-primary">Update Sub Heading</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Form - SMALL HEADING -->
+<div class="popup-overlay" id="editFormOverlaySmallheading" onclick="closePopup('editFormOverlaySmallheading')">
+    <div class="popup-container form-popup" onclick="event.stopPropagation()">
+        <div class="popup-header">
+            <h3>Edit Small Heading</h3>
+            <button class="popup-close" onclick="closePopup('editFormOverlaySmallheading')">✕</button>
+        </div>
+
+        <form id="editFormSmallheading" class="heading-form" onsubmit="submitEditHeading(event, 'smallheading')">
+            <input type="hidden" id="editSmallHeadingId">
+
+            <div class="form-content-grid">
+                <div class="form-group">
+                    <label class="form-label">Parent Heading</label>
+                    <select class="form-input" id="editSmallHeadingParentSelect" disabled onchange="loadSubheadingsForSmallHeadingEdit()">
+                        <option value="">-- Select a heading --</option>
+                    </select>
+                    <small style="color: #888; font-size: 0.8rem;">Cannot change parent</small>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Parent Sub Heading</label>
+                    <select class="form-input" id="editSmallHeadingSubheadingSelect" disabled>
+                        <option value="">-- Select a sub heading --</option>
+                    </select>
+                    <small style="color: #888; font-size: 0.8rem;">Cannot change parent</small>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Small Heading Number</label>
+                    <input type="text" class="form-input readonly-input" id="editSmallHeadingNumber" readonly>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Small Heading Name</label>
+                    <input type="text" class="form-input" id="editSmallHeadingName" name="heading_name" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Tags</label>
+                    <select class="form-input" name="tags">
+                        <option value="">-- No tags available yet --</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Visibility</label>
+                    <div class="radio-group">
+                        <label class="radio-label">
+                            <input type="radio" name="visibility" value="public">
+                            <span class="radio-custom"></span>
+                            <span>Public</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="visibility" value="private">
+                            <span class="radio-custom"></span>
+                            <span>Private</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-message error-message" id="editFormErrorSmallheading"></div>
+            <div class="form-message success-message" id="editFormSuccessSmallheading"></div>
+
+            <div class="form-actions">
+                <button type="button" class="btn-secondary" onclick="closePopup('editFormOverlaySmallheading')">Cancel</button>
+                <button type="submit" class="btn-primary">Update Small Heading</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
     <script src="/static/js/admin_dashboard.js?v={{ cache_buster }}"></script>
 
 </body>

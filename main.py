@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Form, Request, Depends, Cookie, Response
+from fastapi import FastAPI, Form, Request, Depends, Cookie, Response, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -509,7 +509,6 @@ async def get_next_subheading_number(
         return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
 
 
-# Get subheadings for a specific heading (for small heading form)
 @app.get("/api/subheadings/by-heading/{heading_id}")
 async def get_subheadings_by_heading(
         heading_id: int,
@@ -536,7 +535,6 @@ async def get_subheadings_by_heading(
         return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
 
 
-# Get next small heading number for a parent subheading
 @app.get("/api/smallheading/next-number/{subheading_id}")
 async def get_next_smallheading_number(
         subheading_id: int,
@@ -547,7 +545,6 @@ async def get_next_smallheading_number(
         return JSONResponse(status_code=401, content={"error": "Unauthorized"})
 
     try:
-        # Count existing small headings under this subheading
         count = db.query(Heading).filter(
             Heading.parent_heading_id == subheading_id,
             Heading.heading_type == "smallheading"
@@ -560,3 +557,152 @@ async def get_next_smallheading_number(
     except Exception as e:
         return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
 
+
+# ============= GET SINGLE HEADING (for edit form) =============
+
+@app.get("/api/heading/{heading_id}")
+async def get_heading(
+        heading_id: int,
+        db: Session = Depends(get_db),
+        user=Depends(get_current_user)
+):
+    """Get a single heading by ID"""
+    if not user:
+        return JSONResponse(status_code=401, content={"error": "Unauthorized"})
+
+    try:
+        heading = db.query(Heading).filter(Heading.id == heading_id).first()
+        if not heading:
+            return JSONResponse(
+                status_code=404,
+                content={"success": False, "error": "Heading not found"}
+            )
+
+        nepal_time = heading.created_at + NEPAL_OFFSET
+
+        return JSONResponse(content={
+            "success": True,
+            "heading": {
+                "id": heading.id,
+                "heading_type": heading.heading_type,
+                "heading_name": heading.heading_name,
+                "parent_heading_id": heading.parent_heading_id,
+                "subheading_number": heading.subheading_number,
+                "tags": heading.tags,
+                "visibility": heading.visibility,
+                "created_at": nepal_time.strftime("%B %d, %Y %I:%M %p")
+            }
+        })
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
+
+
+# ============= EDIT HEADING =============
+
+@app.post("/admin/heading/edit/{heading_id}")
+async def edit_heading(
+        heading_id: int,
+        heading_name: str = Form(...),
+        visibility: str = Form(...),
+        tags: str = Form(None),
+        db: Session = Depends(get_db),
+        user=Depends(get_current_user)
+):
+    """Edit an existing heading/subheading/smallheading"""
+    if not require_auth(user, required_role="admin"):
+        return JSONResponse(status_code=401, content={"success": False, "error": "Unauthorized"})
+
+    try:
+        heading = db.query(Heading).filter(Heading.id == heading_id).first()
+        if not heading:
+            return JSONResponse(
+                status_code=404,
+                content={"success": False, "error": "Heading not found"}
+            )
+
+        # Update fields
+        heading.heading_name = heading_name
+        heading.visibility = visibility
+        if tags:
+            heading.tags = tags
+
+        db.commit()
+
+        return JSONResponse(content={
+            "success": True,
+            "message": f"{heading.heading_type.capitalize()} updated successfully!"
+        })
+
+    except Exception as e:
+        db.rollback()
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": str(e)}
+        )
+
+
+# ============= DELETE HEADING =============
+
+@app.delete("/admin/heading/delete/{heading_id}")
+async def delete_heading(
+        heading_id: int,
+        db: Session = Depends(get_db),
+        user=Depends(get_current_user)
+):
+    """Delete a heading and all its children (cascade delete)"""
+    if not require_auth(user, required_role="admin"):
+        return JSONResponse(status_code=401, content={"success": False, "error": "Unauthorized"})
+
+    try:
+        heading = db.query(Heading).filter(Heading.id == heading_id).first()
+        if not heading:
+            return JSONResponse(
+                status_code=404,
+                content={"success": False, "error": "Heading not found"}
+            )
+
+        heading_type = heading.heading_type
+
+        # CASCADE DELETE LOGIC
+        if heading_type == "heading":
+            # Delete all subheadings under this heading
+            subheadings = db.query(Heading).filter(
+                Heading.parent_heading_id == heading_id,
+                Heading.heading_type == "subheading"
+            ).all()
+
+            for subheading in subheadings:
+                # Delete all small headings under each subheading
+                db.query(Heading).filter(
+                    Heading.parent_heading_id == subheading.id,
+                    Heading.heading_type == "smallheading"
+                ).delete()
+
+            # Delete all subheadings
+            db.query(Heading).filter(
+                Heading.parent_heading_id == heading_id,
+                Heading.heading_type == "subheading"
+            ).delete()
+
+        elif heading_type == "subheading":
+            # Delete all small headings under this subheading
+            db.query(Heading).filter(
+                Heading.parent_heading_id == heading_id,
+                Heading.heading_type == "smallheading"
+            ).delete()
+
+        # Delete the heading itself
+        db.delete(heading)
+        db.commit()
+
+        return JSONResponse(content={
+            "success": True,
+            "message": f"{heading_type.capitalize()} deleted successfully!"
+        })
+
+    except Exception as e:
+        db.rollback()
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": str(e)}
+        )
