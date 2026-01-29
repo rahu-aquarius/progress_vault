@@ -1693,3 +1693,709 @@ function closeViewerVideo() {
     // Clear player container
     document.getElementById('viewerVideoPlayer').innerHTML = '';
 }
+
+
+// ============================================
+// HEATMAP SYSTEM - GITHUB STYLE CONTRIBUTION TRACKER
+// ============================================
+
+let currentHeatmapView = 'yearly';
+let currentHeatmapYear = 2026;
+let currentHeatmapMonth = new Date().getMonth() + 1;
+let heatmapData = {};
+
+// Initialize heatmap when Heatmap page is shown
+const originalShowPageForHeatmap = showPage;
+showPage = function(pageId) {
+    originalShowPageForHeatmap(pageId);
+    if (pageId === 'heatmap') {
+        initializeHeatmap();
+    }
+};
+
+async function initializeHeatmap() {
+    await loadHeatmapData();
+    renderHeatmap();
+}
+
+// Load heatmap data from API
+async function loadHeatmapData() {
+    try {
+        const params = new URLSearchParams({
+            view: currentHeatmapView,
+            year: currentHeatmapYear,
+            ...(currentHeatmapView === 'monthly' && { month: currentHeatmapMonth })
+        });
+
+        const response = await fetch(`/api/heatmap?${params}`, {
+            credentials: 'include'
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to load heatmap data');
+        }
+
+        const data = await response.json();
+        if (data.success) {
+            heatmapData = data.contributions;
+        }
+    } catch (error) {
+        console.error('Error loading heatmap:', error);
+    }
+}
+
+// Render the heatmap
+function renderHeatmap() {
+    const heatmapSection = document.getElementById('heatmap');
+
+    heatmapSection.innerHTML = `
+        <div class="page-header">
+            <h1 class="page-title">Activity Heatmap</h1>
+            <p class="page-subtitle">Track your daily contributions</p>
+        </div>
+
+        <div class="heatmap-controls">
+            <div class="heatmap-view-toggle">
+                <button class="heatmap-toggle-btn ${currentHeatmapView === 'yearly' ? 'active' : ''}" onclick="switchHeatmapView('yearly')">
+                    Yearly
+                </button>
+                <button class="heatmap-toggle-btn ${currentHeatmapView === 'monthly' ? 'active' : ''}" onclick="switchHeatmapView('monthly')">
+                    Monthly
+                </button>
+            </div>
+
+            <div class="heatmap-date-selector">
+                ${currentHeatmapView === 'monthly' ? `
+                    <select id="heatmapMonthSelect" class="heatmap-select" onchange="changeHeatmapMonth(this.value)">
+                        ${getMonthOptions()}
+                    </select>
+                ` : ''}
+                <select id="heatmapYearSelect" class="heatmap-select" onchange="changeHeatmapYear(this.value)">
+                    ${getYearOptions()}
+                </select>
+            </div>
+        </div>
+
+        <div class="heatmap-legend">
+            <span>Less</span>
+            <div class="legend-color" data-level="0"></div>
+            <div class="legend-color" data-level="1"></div>
+            <div class="legend-color" data-level="2"></div>
+            <div class="legend-color" data-level="3"></div>
+            <div class="legend-color" data-level="4"></div>
+            <span>More</span>
+        </div>
+
+        <div class="heatmap-container" id="heatmapGrid"></div>
+
+        <div class="heatmap-stats">
+            <div class="stat-card">
+                <div class="stat-value" id="totalContributions">0</div>
+                <div class="stat-label">Total Posts</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="activeDays">0</div>
+                <div class="stat-label">Active Days</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="maxStreak">0</div>
+                <div class="stat-label">Max Streak</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="avgPerDay">0</div>
+                <div class="stat-label">Avg Per Day</div>
+            </div>
+        </div>
+    `;
+
+    renderHeatmapGrid();
+    updateHeatmapStats();
+}
+
+// Render the heatmap grid
+function renderHeatmapGrid() {
+    const container = document.getElementById('heatmapGrid');
+
+    if (currentHeatmapView === 'yearly') {
+        renderYearlyHeatmap(container);
+    } else {
+        renderMonthlyHeatmap(container);
+    }
+}
+
+// Render yearly heatmap (GitHub style) - FIXED TO SHOW ALL 12 MONTHS
+function renderYearlyHeatmap(container) {
+    const startDate = new Date(currentHeatmapYear, 0, 1);
+    const endDate = new Date(currentHeatmapYear, 11, 31);
+
+    let html = '<div class="heatmap-year-grid">';
+
+    // Month labels
+    html += '<div class="heatmap-months">';
+    for (let m = 0; m < 12; m++) {
+        html += `<div class="month-label">${new Date(currentHeatmapYear, m, 1).toLocaleString('default', { month: 'short' })}</div>`;
+    }
+    html += '</div>';
+
+    // Day labels
+    html += '<div class="heatmap-days-labels">';
+    ['Mon', 'Wed', 'Fri'].forEach(day => {
+        html += `<div class="day-label">${day}</div>`;
+    });
+    html += '</div>';
+
+    // Grid - FIXED: Calculate total weeks needed for the entire year
+    html += '<div class="heatmap-weeks">';
+
+    let currentDate = new Date(startDate);
+    // Start from the Monday before or on Jan 1
+    const dayOfWeek = currentDate.getDay();
+    const daysToMonday = (dayOfWeek === 0) ? 6 : dayOfWeek - 1;
+    currentDate.setDate(currentDate.getDate() - daysToMonday);
+
+    // Calculate end date - go past Dec 31 to complete the last week
+    const finalDate = new Date(endDate);
+    finalDate.setDate(finalDate.getDate() + 7); // Add buffer
+
+    let weekCount = 0;
+    const maxWeeks = 53; // GitHub shows up to 53 weeks
+
+    while (currentDate < finalDate && weekCount < maxWeeks) {
+        html += '<div class="heatmap-week">';
+
+        for (let day = 0; day < 7; day++) {
+            const dateStr = currentDate.toISOString().split('T')[0];
+            const count = heatmapData[dateStr] || 0;
+            const level = getContributionLevel(count);
+            const isCurrentYear = currentDate.getFullYear() === currentHeatmapYear;
+
+            html += `
+                <div class="heatmap-day ${isCurrentYear ? '' : 'out-of-range'}"
+                     data-date="${dateStr}"
+                     data-count="${count}"
+                     data-level="${level}"
+                     onclick="showDayDetails('${dateStr}')"
+                     title="${formatDate(currentDate)}: ${count} post${count !== 1 ? 's' : ''}">
+                </div>
+            `;
+
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+
+        html += '</div>';
+        weekCount++;
+    }
+
+    html += '</div></div>';
+    container.innerHTML = html;
+}
+
+
+// Render monthly heatmap (calendar style)
+function renderMonthlyHeatmap(container) {
+    const year = currentHeatmapYear;
+    const month = currentHeatmapMonth - 1;
+
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startDayOfWeek = firstDay.getDay();
+
+    let html = '<div class="heatmap-month-grid">';
+
+    html += `<div class="month-header">${firstDay.toLocaleString('default', { month: 'long', year: 'numeric' })}</div>`;
+
+    html += '<div class="weekday-headers">';
+    ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].forEach(day => {
+        html += `<div class="weekday-header">${day}</div>`;
+    });
+    html += '</div>';
+
+    html += '<div class="calendar-grid">';
+
+    for (let i = 0; i < startDayOfWeek; i++) {
+        html += '<div class="calendar-day empty"></div>';
+    }
+
+    for (let day = 1; day <= daysInMonth; day++) {
+        const date = new Date(year, month, day);
+        const dateStr = date.toISOString().split('T')[0];
+        const count = heatmapData[dateStr] || 0;
+        const level = getContributionLevel(count);
+
+        html += `
+            <div class="calendar-day"
+                 data-date="${dateStr}"
+                 data-count="${count}"
+                 data-level="${level}"
+                 onclick="showDayDetails('${dateStr}')"
+                 title="${formatDate(date)}: ${count} post${count !== 1 ? 's' : ''}">
+                <div class="day-number">${day}</div>
+                <div class="day-indicator"></div>
+            </div>
+        `;
+    }
+
+    html += '</div></div>';
+    container.innerHTML = html;
+}
+
+// Get contribution level (0-4) based on count
+function getContributionLevel(count) {
+    if (count === 0) return 0;
+    if (count <= 2) return 1;
+    if (count <= 4) return 2;
+    if (count <= 6) return 3;
+    return 4;
+}
+
+// Show details for a specific day
+async function showDayDetails(dateStr) {
+    try {
+        const response = await fetch(`/api/heatmap/details/${dateStr}`, {
+            credentials: 'include'
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to load day details');
+        }
+
+        const data = await response.json();
+
+        if (data.success) {
+            displayDayDetailsPopup(data);
+        }
+    } catch (error) {
+        console.error('Error loading day details:', error);
+        await customAlert('Failed to load activity details', 'Error', 'error');
+    }
+}
+
+// Display day details in a popup
+function displayDayDetailsPopup(data) {
+    const { formatted_date, activities, total_count } = data;
+
+    let content = `<strong>${formatted_date}</strong><br><br>`;
+    content += `<strong>Total Activities: ${total_count}</strong><br><br>`;
+
+    if (activities.headings.length > 0) {
+        content += `<strong>📋 Headings (${activities.headings.length}):</strong><br>`;
+        activities.headings.forEach(h => {
+            content += `• ${h.name} <span style="color: #888;">(${h.time})</span><br>`;
+        });
+        content += '<br>';
+    }
+
+    if (activities.subheadings.length > 0) {
+        content += `<strong>📂 Sub Headings (${activities.subheadings.length}):</strong><br>`;
+        activities.subheadings.forEach(h => {
+            content += `• ${h.name} <span style="color: #888;">(${h.time})</span><br>`;
+        });
+        content += '<br>';
+    }
+
+    if (activities.smallheadings.length > 0) {
+        content += `<strong>📄 Small Headings (${activities.smallheadings.length}):</strong><br>`;
+        activities.smallheadings.forEach(h => {
+            content += `• ${h.name} <span style="color: #888;">(${h.time})</span><br>`;
+        });
+        content += '<br>';
+    }
+
+    if (activities.posts.length > 0) {
+        content += `<strong>🎥 Posts (${activities.posts.length}):</strong><br>`;
+        activities.posts.forEach(p => {
+            content += `• ${p.title} <span style="color: #888;">(${p.time})</span><br>`;
+        });
+    }
+
+    if (total_count === 0) {
+        content += '<span style="color: #888;">No activity on this day</span>';
+    }
+
+    const popup = document.createElement('div');
+    popup.className = 'heatmap-details-popup';
+    popup.innerHTML = `
+        <div class="heatmap-details-content">
+            <button class="heatmap-details-close" onclick="this.parentElement.parentElement.remove()">✕</button>
+            <div style="line-height: 1.8;">${content}</div>
+        </div>
+    `;
+
+    document.body.appendChild(popup);
+    setTimeout(() => popup.classList.add('active'), 10);
+}
+
+// Switch between yearly and monthly view
+async function switchHeatmapView(view) {
+    currentHeatmapView = view;
+    await loadHeatmapData();
+    renderHeatmap();
+}
+
+// Change year
+async function changeHeatmapYear(year) {
+    currentHeatmapYear = parseInt(year);
+    await loadHeatmapData();
+    renderHeatmapGrid();
+    updateHeatmapStats();
+}
+
+// Change month
+async function changeHeatmapMonth(month) {
+    currentHeatmapMonth = parseInt(month);
+    await loadHeatmapData();
+    renderHeatmapGrid();
+    updateHeatmapStats();
+}
+
+// Get year options (2026 to current year)
+function getYearOptions() {
+    const currentYear = new Date().getFullYear();
+    let options = '';
+    for (let year = 2026; year <= currentYear; year++) {
+        options += `<option value="${year}" ${year === currentHeatmapYear ? 'selected' : ''}>${year}</option>`;
+    }
+    return options;
+}
+
+// Get month options
+function getMonthOptions() {
+    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    return months.map((month, index) =>
+        `<option value="${index + 1}" ${(index + 1) === currentHeatmapMonth ? 'selected' : ''}>${month}</option>`
+    ).join('');
+}
+
+// Update heatmap statistics
+function updateHeatmapStats() {
+    const values = Object.values(heatmapData);
+    const totalContributions = values.reduce((sum, count) => sum + count, 0);
+    const activeDays = values.filter(count => count > 0).length;
+
+    let maxStreak = 0;
+    let currentStreak = 0;
+    const dates = Object.keys(heatmapData).sort();
+
+    dates.forEach((date, index) => {
+        if (heatmapData[date] > 0) {
+            currentStreak++;
+            maxStreak = Math.max(maxStreak, currentStreak);
+        } else {
+            currentStreak = 0;
+        }
+    });
+
+    const avgPerDay = activeDays > 0 ? (totalContributions / activeDays).toFixed(1) : 0;
+
+    document.getElementById('totalContributions').textContent = totalContributions;
+    document.getElementById('activeDays').textContent = activeDays;
+    document.getElementById('maxStreak').textContent = maxStreak;
+    document.getElementById('avgPerDay').textContent = avgPerDay;
+}
+
+// Format date for display
+function formatDate(date) {
+    return date.toLocaleDateString('en-US', {
+        weekday: 'short',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+    });
+}
+
+
+// ============================================
+// SLEEP TRACKER SYSTEM 😴
+// ============================================
+
+let currentSleepSession = null;
+let sleepCheckInterval = null;
+
+// Initialize sleep tracker when page is shown
+const originalShowPageForSleep = showPage;
+showPage = function(pageId) {
+    originalShowPageForSleep(pageId);
+    if (pageId === 'sleep-tracker') {
+        initializeSleepTracker();
+    }
+};
+
+async function initializeSleepTracker() {
+    await checkCurrentSession();
+    await loadSleepStats();
+    await loadSleepHistory();
+    startSleepDurationUpdater();
+}
+
+// Check if there's an active sleep session
+async function checkCurrentSession() {
+    try {
+        const response = await fetch('/api/sleep/current', {
+            credentials: 'include'
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to check session');
+        }
+
+        const data = await response.json();
+
+        if (data.success && data.active) {
+            currentSleepSession = data.session;
+            updateSleepStatusUI(true);
+        } else {
+            currentSleepSession = null;
+            updateSleepStatusUI(false);
+        }
+    } catch (error) {
+        console.error('Error checking session:', error);
+    }
+}
+
+// Update the sleep status UI
+function updateSleepStatusUI(isSleeping) {
+    const statusCard = document.getElementById('sleepStatusCard');
+    const statusIcon = document.getElementById('sleepStatusIcon');
+    const statusTitle = document.getElementById('sleepStatusTitle');
+    const statusText = document.getElementById('sleepStatusText');
+    const statusTime = document.getElementById('sleepStatusTime');
+    const actionBtn = document.getElementById('sleepActionBtn');
+    const actionIcon = document.getElementById('sleepActionIcon');
+    const actionText = document.getElementById('sleepActionText');
+
+    if (isSleeping && currentSleepSession) {
+        statusCard.style.background = 'linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(76, 175, 80, 0.05) 100%)';
+        statusCard.style.borderColor = 'rgba(76, 175, 80, 0.3)';
+        statusIcon.textContent = '😴';
+        statusTitle.textContent = 'Sleeping...';
+        statusText.textContent = 'Sleep session in progress';
+        statusTime.textContent = `Started at: ${currentSleepSession.sleep_time}`;
+        actionBtn.className = 'btn-sleep-danger';
+        actionIcon.textContent = '🌅';
+        actionText.textContent = 'Wake Up';
+    } else {
+        statusCard.style.background = '';
+        statusCard.style.borderColor = '';
+        statusIcon.textContent = '🌙';
+        statusTitle.textContent = 'Ready to Sleep?';
+        statusText.textContent = 'Press the button below to start tracking your sleep';
+        statusTime.textContent = '';
+        actionBtn.className = 'btn-sleep-primary';
+        actionIcon.textContent = '😴';
+        actionText.textContent = 'Start Sleep';
+    }
+}
+
+// Handle sleep action button click
+async function handleSleepAction() {
+    if (currentSleepSession) {
+        // Wake up
+        await endSleepSession();
+    } else {
+        // Start sleep
+        await startSleepSession();
+    }
+}
+
+// Start a new sleep session
+async function startSleepSession() {
+    try {
+        const response = await fetch('/api/sleep/start', {
+            method: 'POST',
+            credentials: 'include'
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            currentSleepSession = data.session;
+            updateSleepStatusUI(true);
+            await customAlert(data.message, 'Sleep Started', 'success');
+        } else {
+            await customAlert(data.error || 'Failed to start sleep session', 'Error', 'error');
+        }
+    } catch (error) {
+        console.error('Error starting sleep:', error);
+        await customAlert('An error occurred while starting sleep session', 'Error', 'error');
+    }
+}
+
+// End the current sleep session
+async function endSleepSession() {
+    try {
+        const response = await fetch('/api/sleep/end', {
+            method: 'POST',
+            credentials: 'include'
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            currentSleepSession = null;
+            updateSleepStatusUI(false);
+            await loadSleepStats();
+            await loadSleepHistory();
+            await customAlert(data.message, 'Wake Up!', 'success');
+        } else {
+            await customAlert(data.error || 'Failed to end sleep session', 'Error', 'error');
+        }
+    } catch (error) {
+        console.error('Error ending sleep:', error);
+        await customAlert('An error occurred while ending sleep session', 'Error', 'error');
+    }
+}
+
+// Load sleep statistics
+async function loadSleepStats() {
+    try {
+        const response = await fetch('/api/sleep/stats', {
+            credentials: 'include'
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            document.getElementById('totalSessions').textContent = data.stats.total_sessions;
+            document.getElementById('avgDuration').textContent = data.stats.average_duration;
+            document.getElementById('longestSleep').textContent = data.stats.longest_sleep;
+            document.getElementById('shortestSleep').textContent = data.stats.shortest_sleep;
+        }
+    } catch (error) {
+        console.error('Error loading stats:', error);
+    }
+}
+
+// Load sleep history
+async function loadSleepHistory() {
+    try {
+        const response = await fetch('/api/sleep/history?limit=30', {
+            credentials: 'include'
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            displaySleepHistory(data.history);
+        }
+    } catch (error) {
+        console.error('Error loading history:', error);
+    }
+}
+
+// Display sleep history
+function displaySleepHistory(history) {
+    const container = document.getElementById('sleepHistoryContainer');
+    const placeholder = document.getElementById('noSleepHistoryPlaceholder');
+
+    if (!history || history.length === 0) {
+        container.innerHTML = '';
+        placeholder.style.display = 'block';
+        return;
+    }
+
+    placeholder.style.display = 'none';
+
+    let html = '';
+    history.forEach(session => {
+        const qualityClass = session.quality === 'Good' ? 'quality-good' : 'quality-low';
+        const qualityIcon = session.quality === 'Good' ? '✅' : '⚠️';
+
+        html += `
+            <div class="sleep-history-item">
+                <div class="sleep-history-header">
+                    <div class="sleep-history-date">
+                        <span class="sleep-date-icon">📅</span>
+                        <span class="sleep-date-text">${session.sleep_date}</span>
+                    </div>
+                    <div class="sleep-quality ${qualityClass}">
+                        <span>${qualityIcon}</span>
+                        <span>${session.quality}</span>
+                    </div>
+                </div>
+                <div class="sleep-history-details">
+                    <div class="sleep-detail-item">
+                        <span class="sleep-detail-icon">😴</span>
+                        <span class="sleep-detail-label">Sleep:</span>
+                        <span class="sleep-detail-value">${session.sleep_time}</span>
+                    </div>
+                    <div class="sleep-detail-item">
+                        <span class="sleep-detail-icon">🌅</span>
+                        <span class="sleep-detail-label">Wake:</span>
+                        <span class="sleep-detail-value">${session.wake_time}</span>
+                    </div>
+                    <div class="sleep-detail-item">
+                        <span class="sleep-detail-icon">⏱️</span>
+                        <span class="sleep-detail-label">Duration:</span>
+                        <span class="sleep-detail-value">${session.duration_formatted}</span>
+                    </div>
+                </div>
+                <button class="btn-delete-session" onclick="deleteSleepSession(${session.id})">
+                    <span>🗑️</span>
+                    <span>Delete</span>
+                </button>
+            </div>
+        `;
+    });
+
+    container.innerHTML = html;
+}
+
+// Delete a sleep session
+async function deleteSleepSession(sessionId) {
+    if (!await customConfirm('Are you sure you want to delete this sleep record?', 'Delete Record?', 'warning')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/sleep/delete/${sessionId}`, {
+            method: 'DELETE',
+            credentials: 'include'
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            await loadSleepStats();
+            await loadSleepHistory();
+            await customAlert('Sleep record deleted successfully', 'Deleted', 'success');
+        } else {
+            await customAlert(data.error || 'Failed to delete record', 'Error', 'error');
+        }
+    } catch (error) {
+        console.error('Error deleting session:', error);
+        await customAlert('An error occurred while deleting', 'Error', 'error');
+    }
+}
+
+// Start the duration updater (updates every second when sleeping)
+function startSleepDurationUpdater() {
+    if (sleepCheckInterval) {
+        clearInterval(sleepCheckInterval);
+    }
+
+    sleepCheckInterval = setInterval(() => {
+        if (currentSleepSession) {
+            updateSleepDuration();
+        }
+    }, 1000);
+}
+
+// Update the sleep duration display
+function updateSleepDuration() {
+    if (!currentSleepSession) return;
+
+    const statusText = document.getElementById('statusText');
+    const sleepTime = new Date(currentSleepSession.sleep_timestamp);
+    const now = new Date();
+    const diff = now - sleepTime;
+
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+    const statusTextEl = document.getElementById('sleepStatusText');
+    if (statusTextEl) {
+        statusTextEl.textContent = `Sleeping for: ${hours}h ${minutes}m ${seconds}s`;
+    }
+}

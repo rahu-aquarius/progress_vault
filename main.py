@@ -7,9 +7,12 @@ import random
 from datetime import timedelta, datetime, timezone
 from passlib.context import CryptContext
 from database import engine, get_db, Base
-from models import Video, Comment, Settings, Heading, Post
+from models import Video, Comment, Settings, Heading, Post, SleepLog
 from config import settings
 from auth import create_access_token, verify_token
+from fastapi import Query
+from typing import Optional
+
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -330,6 +333,388 @@ async def get_stats(db: Session = Depends(get_db), user=Depends(get_current_user
             }
         })
     except Exception as e:
+        return JSONResponse(status_code=500, content={'success': False, 'error': str(e)})
+
+
+# ============================================
+# HEATMAP API - Activity Tracking
+# ============================================
+
+from fastapi import Query
+from typing import Optional
+
+
+@app.get("/api/heatmap")
+async def get_heatmap(
+        view: str = Query("yearly", regex="^(monthly|yearly)$"),
+        year: int = Query(2026),
+        month: Optional[int] = Query(None),
+        db: Session = Depends(get_db),
+        user=Depends(get_current_user)
+):
+    """Get heatmap data for contributions (only posts count as contributions)"""
+    if not require_auth(user, required_role='admin'):
+        return JSONResponse(status_code=401, content={'error': 'Unauthorized'})
+
+    try:
+        # Get all posts for the time period
+        if view == "yearly":
+            start_date = datetime(year, 1, 1)
+            end_date = datetime(year, 12, 31, 23, 59, 59)
+        else:  # monthly
+            if not month or month < 1 or month > 12:
+                month = datetime.now().month
+
+            start_date = datetime(year, month, 1)
+            if month == 12:
+                end_date = datetime(year + 1, 1, 1) - timedelta(seconds=1)
+            else:
+                end_date = datetime(year, month + 1, 1) - timedelta(seconds=1)
+
+        # Get ALL posts (we'll convert to Nepal time in Python)
+        posts = db.query(Post).filter(
+            Post.created_at >= start_date - timedelta(days=1),  # Buffer for timezone
+            Post.created_at <= end_date + timedelta(days=1)  # Buffer for timezone
+        ).all()
+
+        # Count posts by Nepal timezone date
+        contributions = {}
+        for post in posts:
+            # Convert UTC to Nepal time
+            nepal_time = post.created_at + NEPAL_OFFSET
+            date_str = nepal_time.strftime('%Y-%m-%d')
+
+            # Only count if in the requested period
+            nepal_date = nepal_time.date()
+            start_date_only = start_date.date()
+            end_date_only = end_date.date()
+
+            if start_date_only <= nepal_date <= end_date_only:
+                contributions[date_str] = contributions.get(date_str, 0) + 1
+
+        return JSONResponse(content={
+            'success': True,
+            'view': view,
+            'year': year,
+            'month': month,
+            'contributions': contributions
+        })
+
+    except Exception as e:
+        import traceback
+        print(f"Heatmap error: {e}")
+        print(traceback.format_exc())
+        return JSONResponse(status_code=500, content={'success': False, 'error': str(e)})
+
+
+@app.get("/api/heatmap/details/{date}")
+async def get_date_details(
+        date: str,
+        db: Session = Depends(get_db),
+        user=Depends(get_current_user)
+):
+    """Get all activities for a specific date (Nepal timezone)"""
+    if not require_auth(user, required_role='admin'):
+        return JSONResponse(status_code=401, content={'error': 'Unauthorized'})
+
+    try:
+        # Parse the date (this is Nepal date)
+        target_date = datetime.strptime(date, '%Y-%m-%d')
+
+        # Convert Nepal date to UTC range for querying
+        # Nepal date starts at 00:00 Nepal time
+        nepal_start = target_date
+        nepal_end = target_date + timedelta(days=1)
+
+        # Convert to UTC (subtract Nepal offset)
+        utc_start = nepal_start - NEPAL_OFFSET
+        utc_end = nepal_end - NEPAL_OFFSET
+
+        # Query database with UTC times
+        headings = db.query(Heading).filter(
+            Heading.created_at >= utc_start,
+            Heading.created_at < utc_end,
+            Heading.heading_type == 'heading'
+        ).all()
+
+        subheadings = db.query(Heading).filter(
+            Heading.created_at >= utc_start,
+            Heading.created_at < utc_end,
+            Heading.heading_type == 'subheading'
+        ).all()
+
+        smallheadings = db.query(Heading).filter(
+            Heading.created_at >= utc_start,
+            Heading.created_at < utc_end,
+            Heading.heading_type == 'smallheading'
+        ).all()
+
+        posts = db.query(Post).filter(
+            Post.created_at >= utc_start,
+            Post.created_at < utc_end
+        ).all()
+
+        # Format with Nepal timezone
+        return JSONResponse(content={
+            'success': True,
+            'date': date,
+            'formatted_date': target_date.strftime('%B %d, %Y'),
+            'activities': {
+                'headings': [{'name': h.heading_name, 'time': (h.created_at + NEPAL_OFFSET).strftime('%I:%M %p')} for h
+                             in headings],
+                'subheadings': [{'name': h.heading_name, 'time': (h.created_at + NEPAL_OFFSET).strftime('%I:%M %p')} for
+                                h in subheadings],
+                'smallheadings': [{'name': h.heading_name, 'time': (h.created_at + NEPAL_OFFSET).strftime('%I:%M %p')}
+                                  for h in smallheadings],
+                'posts': [{'title': p.post_title, 'time': (p.created_at + NEPAL_OFFSET).strftime('%I:%M %p')} for p in
+                          posts]
+            },
+            'total_count': len(headings) + len(subheadings) + len(smallheadings) + len(posts)
+        })
+
+    except Exception as e:
+        import traceback
+        print(f"Details error: {e}")
+        print(traceback.format_exc())
+        return JSONResponse(status_code=500, content={'success': False, 'error': str(e)})
+
+
+# ============================================
+# SLEEP TRACKER API
+# ============================================
+
+@app.get("/api/sleep/current")
+async def get_current_sleep_session(db: Session = Depends(get_db), user=Depends(get_current_user)):
+    """Check if there's an active sleep session"""
+    if not require_auth(user, required_role='admin'):
+        return JSONResponse(status_code=401, content={'error': 'Unauthorized'})
+
+    try:
+        active_session = db.query(SleepLog).filter(
+            SleepLog.wake_time == None
+        ).order_by(SleepLog.sleep_time.desc()).first()
+
+        if active_session:
+            nepal_sleep_time = active_session.sleep_time + NEPAL_OFFSET
+            return JSONResponse(content={
+                'success': True,
+                'active': True,
+                'session': {
+                    'id': active_session.id,
+                    'sleep_time': nepal_sleep_time.strftime('%Y-%m-%d %I:%M %p'),
+                    'sleep_timestamp': nepal_sleep_time.isoformat()
+                }
+            })
+        else:
+            return JSONResponse(content={
+                'success': True,
+                'active': False
+            })
+    except Exception as e:
+        return JSONResponse(status_code=500, content={'success': False, 'error': str(e)})
+
+
+@app.post("/api/sleep/start")
+async def start_sleep_session(db: Session = Depends(get_db), user=Depends(get_current_user)):
+    """Record when user goes to sleep"""
+    if not require_auth(user, required_role='admin'):
+        return JSONResponse(status_code=401, content={'error': 'Unauthorized'})
+
+    try:
+        active_session = db.query(SleepLog).filter(
+            SleepLog.wake_time == None
+        ).first()
+
+        if active_session:
+            return JSONResponse(status_code=400, content={
+                'success': False,
+                'error': 'You already have an active sleep session. Please end it first.'
+            })
+
+        now_utc = datetime.utcnow()
+        now_nepal = now_utc + NEPAL_OFFSET
+        sleep_date = now_nepal.strftime('%Y-%m-%d')
+
+        new_session = SleepLog(
+            sleep_time=now_utc,
+            sleep_date=sleep_date
+        )
+
+        db.add(new_session)
+        db.commit()
+        db.refresh(new_session)
+
+        nepal_time = new_session.sleep_time + NEPAL_OFFSET
+
+        return JSONResponse(content={
+            'success': True,
+            'message': 'Sleep session started! Sweet dreams 😴',
+            'session': {
+                'id': new_session.id,
+                'sleep_time': nepal_time.strftime('%Y-%m-%d %I:%M %p')
+            }
+        })
+    except Exception as e:
+        db.rollback()
+        return JSONResponse(status_code=500, content={'success': False, 'error': str(e)})
+
+
+@app.post("/api/sleep/end")
+async def end_sleep_session(db: Session = Depends(get_db), user=Depends(get_current_user)):
+    """Record when user wakes up"""
+    if not require_auth(user, required_role='admin'):
+        return JSONResponse(status_code=401, content={'error': 'Unauthorized'})
+
+    try:
+        active_session = db.query(SleepLog).filter(
+            SleepLog.wake_time == None
+        ).order_by(SleepLog.sleep_time.desc()).first()
+
+        if not active_session:
+            return JSONResponse(status_code=400, content={
+                'success': False,
+                'error': 'No active sleep session found. Please start a sleep session first.'
+            })
+
+        now_utc = datetime.utcnow()
+        active_session.wake_time = now_utc
+
+        duration = now_utc - active_session.sleep_time
+        active_session.duration_minutes = int(duration.total_seconds() / 60)
+
+        db.commit()
+
+        nepal_sleep = active_session.sleep_time + NEPAL_OFFSET
+        nepal_wake = active_session.wake_time + NEPAL_OFFSET
+
+        hours = active_session.duration_minutes // 60
+        minutes = active_session.duration_minutes % 60
+
+        return JSONResponse(content={
+            'success': True,
+            'message': f'Good morning! You slept for {hours}h {minutes}m 🌅',
+            'session': {
+                'id': active_session.id,
+                'sleep_time': nepal_sleep.strftime('%Y-%m-%d %I:%M %p'),
+                'wake_time': nepal_wake.strftime('%Y-%m-%d %I:%M %p'),
+                'duration_minutes': active_session.duration_minutes,
+                'duration_formatted': f'{hours}h {minutes}m'
+            }
+        })
+    except Exception as e:
+        db.rollback()
+        return JSONResponse(status_code=500, content={'success': False, 'error': str(e)})
+
+
+@app.get("/api/sleep/history")
+async def get_sleep_history(
+        limit: int = Query(30, ge=1, le=365),
+        db: Session = Depends(get_db),
+        user=Depends(get_current_user)
+):
+    """Get sleep history"""
+    if not require_auth(user, required_role='admin'):
+        return JSONResponse(status_code=401, content={'error': 'Unauthorized'})
+
+    try:
+        sessions = db.query(SleepLog).filter(
+            SleepLog.wake_time != None
+        ).order_by(SleepLog.sleep_time.desc()).limit(limit).all()
+
+        history = []
+        for session in sessions:
+            nepal_sleep = session.sleep_time + NEPAL_OFFSET
+            nepal_wake = session.wake_time + NEPAL_OFFSET
+
+            hours = session.duration_minutes // 60
+            minutes = session.duration_minutes % 60
+
+            history.append({
+                'id': session.id,
+                'sleep_date': session.sleep_date,
+                'sleep_time': nepal_sleep.strftime('%I:%M %p'),
+                'wake_time': nepal_wake.strftime('%I:%M %p'),
+                'duration_minutes': session.duration_minutes,
+                'duration_formatted': f'{hours}h {minutes}m',
+                'quality': 'Good' if session.duration_minutes >= 420 else 'Low'
+            })
+
+        return JSONResponse(content={
+            'success': True,
+            'history': history
+        })
+    except Exception as e:
+        return JSONResponse(status_code=500, content={'success': False, 'error': str(e)})
+
+
+@app.get("/api/sleep/stats")
+async def get_sleep_stats(db: Session = Depends(get_db), user=Depends(get_current_user)):
+    """Get sleep statistics"""
+    if not require_auth(user, required_role='admin'):
+        return JSONResponse(status_code=401, content={'error': 'Unauthorized'})
+
+    try:
+        sessions = db.query(SleepLog).filter(
+            SleepLog.wake_time != None
+        ).all()
+
+        if not sessions:
+            return JSONResponse(content={
+                'success': True,
+                'stats': {
+                    'total_sessions': 0,
+                    'average_duration': '0h 0m',
+                    'total_sleep_hours': '0h',
+                    'longest_sleep': '0h 0m',
+                    'shortest_sleep': '0h 0m'
+                }
+            })
+
+        durations = [s.duration_minutes for s in sessions]
+        total_minutes = sum(durations)
+        avg_minutes = total_minutes / len(sessions)
+
+        return JSONResponse(content={
+            'success': True,
+            'stats': {
+                'total_sessions': len(sessions),
+                'average_duration': f'{int(avg_minutes // 60)}h {int(avg_minutes % 60)}m',
+                'total_sleep_hours': f'{int(total_minutes // 60)}h',
+                'longest_sleep': f'{int(max(durations) // 60)}h {int(max(durations) % 60)}m',
+                'shortest_sleep': f'{int(min(durations) // 60)}h {int(min(durations) % 60)}m'
+            }
+        })
+    except Exception as e:
+        return JSONResponse(status_code=500, content={'success': False, 'error': str(e)})
+
+
+@app.delete("/api/sleep/delete/{session_id}")
+async def delete_sleep_session(
+        session_id: int,
+        db: Session = Depends(get_db),
+        user=Depends(get_current_user)
+):
+    """Delete a sleep session"""
+    if not require_auth(user, required_role='admin'):
+        return JSONResponse(status_code=401, content={'error': 'Unauthorized'})
+
+    try:
+        session = db.query(SleepLog).filter(SleepLog.id == session_id).first()
+        if not session:
+            return JSONResponse(status_code=404, content={
+                'success': False,
+                'error': 'Sleep session not found'
+            })
+
+        db.delete(session)
+        db.commit()
+
+        return JSONResponse(content={
+            'success': True,
+            'message': 'Sleep session deleted successfully'
+        })
+    except Exception as e:
+        db.rollback()
         return JSONResponse(status_code=500, content={'success': False, 'error': str(e)})
 
 

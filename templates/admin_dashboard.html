@@ -62,6 +62,13 @@
                 <span class="nav-item-icon">🔥</span>
                 <span>Heatmap</span>
             </div>
+
+            <div class="nav-item" onclick="showPage('sleep-tracker')">
+    <span class="nav-item-icon">😴</span>
+    <span>Sleep Tracker</span>
+</div>
+
+
         </div>
 
         <div class="sidebar-footer">
@@ -232,6 +239,71 @@
                 <p class="placeholder-text">Analytics and heatmap visualization coming soon...</p>
             </div>
         </section>
+
+        <!-- Sleep Tracker Page -->
+<section class="page-section" id="sleep-tracker">
+    <div class="page-header">
+        <h1 class="page-title">Sleep Tracker 😴</h1>
+        <p class="page-subtitle">Track your sleep patterns and analyze your rest quality</p>
+    </div>
+
+    <!-- Current Status Card -->
+    <div class="sleep-status-card" id="sleepStatusCard">
+        <div class="sleep-status-content">
+            <div class="sleep-status-icon" id="sleepStatusIcon">🌙</div>
+            <div class="sleep-status-info">
+                <h3 id="sleepStatusTitle">Ready to Sleep?</h3>
+                <p id="sleepStatusText">Press the button below to start tracking your sleep</p>
+                <p id="sleepStatusTime" style="font-size: 0.9rem; color: #888; margin-top: 0.5rem;"></p>
+            </div>
+        </div>
+        <div class="sleep-status-actions">
+            <button class="btn-sleep-primary" id="sleepActionBtn" onclick="handleSleepAction()">
+                <span id="sleepActionIcon">😴</span>
+                <span id="sleepActionText">Start Sleep</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Sleep Statistics -->
+    <div class="sleep-stats-grid" id="sleepStatsGrid">
+        <div class="stat-card">
+            <div class="stat-icon">📊</div>
+            <div class="stat-value" id="totalSessions">0</div>
+            <div class="stat-label">Total Sessions</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">⏱️</div>
+            <div class="stat-value" id="avgDuration">0h 0m</div>
+            <div class="stat-label">Average Duration</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">🏆</div>
+            <div class="stat-value" id="longestSleep">0h 0m</div>
+            <div class="stat-label">Longest Sleep</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">⚡</div>
+            <div class="stat-value" id="shortestSleep">0h 0m</div>
+            <div class="stat-label">Shortest Sleep</div>
+        </div>
+    </div>
+
+    <!-- Sleep History -->
+    <div class="sleep-history-section">
+        <h2 class="section-title">Sleep History</h2>
+        <div class="sleep-history-container" id="sleepHistoryContainer">
+            <!-- History items will be loaded here -->
+        </div>
+        <div class="placeholder-section" id="noSleepHistoryPlaceholder" style="display: none;">
+            <div class="placeholder-icon">😴</div>
+            <h3 class="placeholder-title">No Sleep Records Yet</h3>
+            <p class="placeholder-text">Start tracking your sleep to see your history here</p>
+        </div>
+    </div>
+</section>
+
+
     </main>
 
     <!-- POPUPS MOVED HERE - OUTSIDE MAIN TAG -->

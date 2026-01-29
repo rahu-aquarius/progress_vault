@@ -81,3 +81,15 @@ class Post(Base):
     # Relationship to heading (parent can be subheading or smallheading)
     parent_heading = relationship("Heading", back_populates="posts")
 
+
+class SleepLog(Base):
+    __tablename__ = "sleep_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    sleep_time = Column(DateTime, nullable=False)  # When user went to sleep
+    wake_time = Column(DateTime, nullable=True)  # When user woke up (null if still sleeping)
+    duration_minutes = Column(Integer, nullable=True)  # Total sleep duration
+    sleep_date = Column(String, nullable=False)  # Date in YYYY-MM-DD format (Nepal timezone)
+    notes = Column(String, default="")
+    created_at = Column(DateTime, default=datetime.utcnow)
+

@@ -2776,4 +2776,833 @@ select.form-input {
     }
 }
 
+/* ============================================
+   HEATMAP STYLES - GITHUB STYLE ACTIVITY TRACKER
+   ============================================ */
 
+.heatmap-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.heatmap-view-toggle {
+    display: flex;
+    gap: 0.5rem;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 4px;
+    border-radius: 8px;
+}
+
+.heatmap-toggle-btn {
+    padding: 0.5rem 1.5rem;
+    background: transparent;
+    color: #888;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.heatmap-toggle-btn:hover {
+    color: #e0e0e0;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.heatmap-toggle-btn.active {
+    background: #4CAF50;
+    color: white;
+}
+
+.heatmap-date-selector {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.heatmap-select {
+    padding: 0.6rem 1rem;
+    background: rgba(0, 0, 0, 0.3);
+    color: #e0e0e0;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.heatmap-select:hover {
+    border-color: rgba(255, 255, 255, 0.2);
+    background: rgba(0, 0, 0, 0.4);
+}
+
+.heatmap-select:focus {
+    outline: none;
+    border-color: #4CAF50;
+}
+
+/* Legend */
+.heatmap-legend {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 8px;
+}
+
+.heatmap-legend span {
+    font-size: 0.8rem;
+    color: #888;
+}
+
+.legend-color {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.legend-color[data-level="0"] {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.legend-color[data-level="1"] {
+    background: #0e4429;
+}
+
+.legend-color[data-level="2"] {
+    background: #006d32;
+}
+
+.legend-color[data-level="3"] {
+    background: #26a641;
+}
+
+.legend-color[data-level="4"] {
+    background: #39d353;
+}
+
+/* Heatmap Container */
+.heatmap-container {
+    background: rgba(255, 255, 255, 0.02);
+    padding: 2rem;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    overflow-x: auto;
+    margin-bottom: 2rem;
+}
+
+/* Yearly Heatmap (GitHub Style) */
+.heatmap-year-grid {
+    display: grid;
+    grid-template-columns: 30px 1fr;
+    gap: 10px;
+    min-width: fit-content;
+}
+
+.heatmap-months {
+    grid-column: 2;
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 2px;
+    margin-bottom: 5px;
+}
+
+.month-label {
+    font-size: 0.75rem;
+    color: #888;
+    text-align: center;
+}
+
+.heatmap-days-labels {
+    grid-column: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    padding-top: 15px;
+}
+
+.day-label {
+    font-size: 0.7rem;
+    color: #888;
+    line-height: 1.5;
+}
+
+.heatmap-weeks {
+    grid-column: 2;
+    display: flex;
+    gap: 3px;
+}
+
+.heatmap-week {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.heatmap-day {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.heatmap-day[data-level="0"] {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.heatmap-day[data-level="1"] {
+    background: #0e4429;
+}
+
+.heatmap-day[data-level="2"] {
+    background: #006d32;
+}
+
+.heatmap-day[data-level="3"] {
+    background: #26a641;
+}
+
+.heatmap-day[data-level="4"] {
+    background: #39d353;
+}
+
+.heatmap-day:hover {
+    transform: scale(1.3);
+    border-color: rgba(255, 255, 255, 0.3);
+    z-index: 10;
+}
+
+.heatmap-day.out-of-range {
+    opacity: 0.3;
+    cursor: default;
+}
+
+/* Monthly Heatmap (Calendar Style) */
+.heatmap-month-grid {
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.month-header {
+    text-align: center;
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: #e0e0e0;
+    margin-bottom: 1.5rem;
+}
+
+.weekday-headers {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.weekday-header {
+    text-align: center;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #888;
+    padding: 0.5rem;
+}
+
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+}
+
+.calendar-day {
+    aspect-ratio: 1;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.calendar-day.empty {
+    background: transparent;
+    border: none;
+    cursor: default;
+}
+
+.calendar-day:not(.empty):hover {
+    transform: translateY(-3px);
+    border-color: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.05);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.day-number {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #e0e0e0;
+}
+
+.day-indicator {
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    margin-top: auto;
+}
+
+.calendar-day[data-level="0"] .day-indicator {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.calendar-day[data-level="1"] .day-indicator {
+    background: #0e4429;
+}
+
+.calendar-day[data-level="2"] .day-indicator {
+    background: #006d32;
+}
+
+.calendar-day[data-level="3"] .day-indicator {
+    background: #26a641;
+}
+
+.calendar-day[data-level="4"] .day-indicator {
+    background: #39d353;
+}
+
+/* Heatmap Stats */
+.heatmap-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-top: 2rem;
+}
+
+.stat-card {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 1.5rem;
+    text-align: center;
+    transition: all 0.2s ease;
+}
+
+.stat-card:hover {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.1);
+    transform: translateY(-3px);
+}
+
+.stat-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #4CAF50;
+    margin-bottom: 0.5rem;
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    color: #888;
+    font-weight: 500;
+}
+
+/* Day Details Popup */
+.heatmap-details-popup {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    backdrop-filter: blur(5px);
+}
+
+.heatmap-details-popup.active {
+    opacity: 1;
+}
+
+.heatmap-details-content {
+    background: #1a1a1a;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 2rem;
+    max-width: 500px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.heatmap-details-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: #e0e0e0;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1.2rem;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.heatmap-details-close:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: rotate(90deg);
+}
+
+.heatmap-details-content strong {
+    color: #4CAF50;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .heatmap-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .heatmap-view-toggle {
+        justify-content: center;
+    }
+
+    .heatmap-date-selector {
+        flex-direction: column;
+    }
+
+    .heatmap-select {
+        width: 100%;
+    }
+
+    .heatmap-container {
+        padding: 1rem;
+    }
+
+    .heatmap-day {
+        width: 10px;
+        height: 10px;
+    }
+
+    .heatmap-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .calendar-grid {
+        gap: 4px;
+    }
+
+    .calendar-day {
+        padding: 0.3rem;
+    }
+
+    .day-number {
+        font-size: 0.75rem;
+    }
+
+    .day-indicator {
+        height: 4px;
+    }
+}
+
+@media (max-width: 480px) {
+    .heatmap-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .stat-value {
+        font-size: 2rem;
+    }
+}
+
+/* Scrollbar styling for heatmap container */
+.heatmap-container::-webkit-scrollbar {
+    height: 8px;
+}
+
+.heatmap-container::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 4px;
+}
+
+.heatmap-container::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+.heatmap-container::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+
+
+/* ============================================ */
+/* SLEEP TRACKER STYLES 😴💤 */
+/* ============================================ */
+
+/* Sleep Status Card */
+.sleep-status-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    transition: all 0.3s ease;
+}
+
+.sleep-status-content {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.sleep-status-icon {
+    font-size: 4rem;
+    width: 80px;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sleep-status-info {
+    flex: 1;
+}
+
+.sleep-status-info h3 {
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: #e0e0e0;
+    margin-bottom: 0.5rem;
+}
+
+.sleep-status-info p {
+    font-size: 1rem;
+    color: #888;
+    margin: 0.3rem 0;
+}
+
+.sleep-status-actions {
+    display: flex;
+    justify-content: center;
+}
+
+/* Sleep Action Buttons */
+.btn-sleep-primary {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 1rem 2.5rem;
+    background: linear-gradient(135deg, rgba(76, 175, 80, 0.2), rgba(76, 175, 80, 0.1));
+    border: 2px solid rgba(76, 175, 80, 0.4);
+    border-radius: 12px;
+    color: #4CAF50;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: inherit;
+}
+
+.btn-sleep-primary:hover {
+    background: linear-gradient(135deg, rgba(76, 175, 80, 0.3), rgba(76, 175, 80, 0.15));
+    border-color: rgba(76, 175, 80, 0.6);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(76, 175, 80, 0.3);
+}
+
+.btn-sleep-primary span:first-child {
+    font-size: 1.8rem;
+}
+
+.btn-sleep-danger {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 1rem 2.5rem;
+    background: linear-gradient(135deg, rgba(255, 152, 0, 0.2), rgba(255, 152, 0, 0.1));
+    border: 2px solid rgba(255, 152, 0, 0.4);
+    border-radius: 12px;
+    color: #FF9800;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: inherit;
+}
+
+.btn-sleep-danger:hover {
+    background: linear-gradient(135deg, rgba(255, 152, 0, 0.3), rgba(255, 152, 0, 0.15));
+    border-color: rgba(255, 152, 0, 0.6);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(255, 152, 0, 0.3);
+}
+
+.btn-sleep-danger span:first-child {
+    font-size: 1.8rem;
+}
+
+/* Sleep Statistics Grid */
+.sleep-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 1.5rem;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.stat-icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.8rem;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #4CAF50;
+    margin-bottom: 0.5rem;
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    color: #888;
+    font-weight: 500;
+}
+
+/* Sleep History Section */
+.sleep-history-section {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
+    padding: 2rem;
+}
+
+.section-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #e0e0e0;
+    margin-bottom: 1.5rem;
+}
+
+.sleep-history-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.5rem;
+}
+
+/* Sleep History Item Card */
+.sleep-history-item {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.sleep-history-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(76, 175, 80, 0.3);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(76, 175, 80, 0.2);
+}
+
+.sleep-history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.sleep-history-date {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.sleep-date-icon {
+    font-size: 1.2rem;
+}
+
+.sleep-date-text {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #e0e0e0;
+}
+
+/* Quality Badge */
+.sleep-quality {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.8rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.sleep-quality.quality-good {
+    background: rgba(76, 175, 80, 0.15);
+    border: 1px solid rgba(76, 175, 80, 0.3);
+    color: #4CAF50;
+}
+
+.sleep-quality.quality-low {
+    background: rgba(255, 152, 0, 0.15);
+    border: 1px solid rgba(255, 152, 0, 0.3);
+    color: #FF9800;
+}
+
+/* Sleep Details */
+.sleep-history-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+    margin-bottom: 1rem;
+}
+
+.sleep-detail-item {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 0.6rem;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 8px;
+}
+
+.sleep-detail-icon {
+    font-size: 1.3rem;
+    width: 30px;
+    text-align: center;
+}
+
+.sleep-detail-label {
+    font-size: 0.85rem;
+    color: #888;
+    min-width: 60px;
+}
+
+.sleep-detail-value {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #e0e0e0;
+}
+
+/* Delete Session Button */
+.btn-delete-session {
+    width: 100%;
+    padding: 0.8rem;
+    background: rgba(255, 68, 68, 0.1);
+    border: 1px solid rgba(255, 68, 68, 0.3);
+    border-radius: 8px;
+    color: #ff4444;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-family: inherit;
+}
+
+.btn-delete-session:hover {
+    background: rgba(255, 68, 68, 0.2);
+    border-color: rgba(255, 68, 68, 0.5);
+    transform: translateY(-2px);
+}
+
+.btn-delete-session span:first-child {
+    font-size: 1.2rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .sleep-status-content {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .sleep-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .sleep-history-container {
+        grid-template-columns: 1fr;
+    }
+
+    .btn-sleep-primary,
+    .btn-sleep-danger {
+        padding: 0.8rem 1.5rem;
+        font-size: 1rem;
+    }
+
+    .sleep-status-info h3 {
+        font-size: 1.4rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .sleep-stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .stat-value {
+        font-size: 1.5rem;
+    }
+
+    .sleep-status-icon {
+        font-size: 3rem;
+        width: 60px;
+        height: 60px;
+    }
+}
