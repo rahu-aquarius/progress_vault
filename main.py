@@ -13,6 +13,11 @@ from auth import create_access_token, verify_token
 from fastapi import Query
 from typing import Optional
 
+import os
+
+# Get PORT from environment variable (for hosting)
+PORT = int(os.getenv("PORT", 8000))
+
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -1612,3 +1617,8 @@ async def cleanup_orphaned_posts(
     except Exception as e:
         db.rollback()
         return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=PORT)
