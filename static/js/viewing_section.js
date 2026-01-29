@@ -183,7 +183,7 @@ function renderSubheading(subheading) {
 }
 
 // ============================================
-// RENDER SMALL HEADING
+// RENDER SMALL HEADING - FIXED! VIDEOS NOW APPEAR BELOW
 // ============================================
 function renderSmallheading(smallheading) {
     const postsHtml = smallheading.posts && smallheading.posts.length > 0
@@ -191,10 +191,12 @@ function renderSmallheading(smallheading) {
         : '';
 
     return `
-        <div class="smallheading-item">
-            <div class="smallheading-content">
-                <span class="smallheading-number">${smallheading.number}</span>
-                <span class="smallheading-name">${escapeHtml(smallheading.name)}</span>
+        <div class="smallheading-wrapper">
+            <div class="smallheading-item">
+                <div class="smallheading-content">
+                    <span class="smallheading-number">${smallheading.number}</span>
+                    <span class="smallheading-name">${escapeHtml(smallheading.name)}</span>
+                </div>
             </div>
             ${postsHtml}
         </div>
@@ -367,5 +369,3 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
-
-
