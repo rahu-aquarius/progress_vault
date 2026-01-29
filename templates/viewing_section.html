@@ -6,40 +6,62 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Viewing Section - Progress Vault</title>
+    <title>Progress Vault</title>
     <link rel="stylesheet" href="/static/css/viewing_section.css">
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css">
 </head>
 <body>
-    <div class="header">
-        <h1>Progress Vault</h1>
-        <a href="/logout" class="btn-logout">Logout</a>
+    <!-- Guest Viewer Mode Container -->
+    <div id="guest-viewer-mode">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">Progress Vault</h1>
+                <p class="page-subtitle">Public Content Library</p>
+            </div>
+            <a href="/logout" class="btn-logout">Logout</a>
+        </div>
+
+        <!-- Loading State -->
+        <div id="publicContentLoading">Loading content...</div>
+
+        <!-- Content Container -->
+        <div id="publicContentContainer"></div>
     </div>
 
-    {% if videos %}
-    <div class="video-grid">
-        {% for video in videos %}
-        <div class="video-card" onclick="playVideo('{{ video.youtube_url }}')">
-            <div class="video-thumbnail">
-                {% if video.thumbnail_url %}
-                <img src="{{ video.thumbnail_url }}" alt="{{ video.title }}" onerror="this.parentElement.innerHTML='No Thumbnail'">
-                {% else %}
-                No Thumbnail
-                {% endif %}
+    <!-- Video Modal -->
+    <div class="video-modal" id="guestVideoModal">
+        <div class="video-modal-backdrop" onclick="closeGuestVideo()"></div>
+        <div class="video-modal-content">
+            <div class="video-modal-header">
+                <h3 id="guestVideoTitle">Video Player</h3>
+                <button class="video-modal-close" onclick="closeGuestVideo()">✕</button>
             </div>
-            <div class="video-info">
-                <div class="video-title" title="{{ video.title }}">{{ video.title }}</div>
-                <div class="video-meta">{{ video.upload_date.strftime('%b %d, %Y') }}</div>
+            <div class="video-player-wrapper">
+                <div id="guestVideoPlayer"></div>
             </div>
         </div>
-        {% endfor %}
     </div>
-    {% else %}
-    <div class="empty-state">
-        <h3>No videos available</h3>
-        <p>Check back later for new content</p>
-    </div>
-    {% endif %}
 
+    <!-- Post Description Modal -->
+    <div class="popup-overlay" id="postDescriptionOverlay">
+        <div class="popup-content" style="max-width: 600px;">
+            <div class="popup-header">
+                <h3>Video Information</h3>
+                <button class="popup-close" onclick="closePostDescription()">✕</button>
+            </div>
+            <div class="popup-body">
+                <div style="margin-bottom: 1.5rem;">
+                    <h4 style="color: #e0e0e0; margin-bottom: 0.5rem; font-size: 1.1rem;" id="postDescriptionTitle"></h4>
+                    <p style="color: #888; font-size: 0.9rem; margin-bottom: 1rem;" id="postDescriptionDate"></p>
+                    <p style="color: #c0c0c0; line-height: 1.6;" id="postDescriptionContent"></p>
+                </div>
+                <button onclick="closePostDescription()" style="width: 100%; padding: 0.8rem; background: rgba(120, 119, 198, 0.2); border: 1px solid rgba(120, 119, 198, 0.4); border-radius: 8px; color: #9d9ce6; cursor: pointer; font-size: 1rem; transition: all 0.2s;">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
     <script src="/static/js/viewing_section.js"></script>
 </body>
 </html>

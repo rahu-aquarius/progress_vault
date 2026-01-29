@@ -1336,7 +1336,7 @@ select.form-input {
 .posts-container {
     margin-top: 1rem;
     padding: 1rem;
-    border-left: 2px solid rgba(150, 255, 150, 0.2);
+
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 1rem;
@@ -2161,3 +2161,619 @@ select.form-input {
         font-size: 0.95rem;
     }
 }
+
+
+/* ============================================
+   VIEWER MODE VIDEO MODAL (FIXED - MATCHES MANAGE CONTENT)
+   ============================================ */
+.video-modal-overlay {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    background: rgba(0, 0, 0, 0.95) !important;
+    backdrop-filter: blur(10px) !important;
+    z-index: 10000 !important;
+    display: none !important;
+    align-items: center !important;
+    justify-content: center !important;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.video-modal-overlay.active {
+    display: flex !important;
+    opacity: 1;
+}
+
+.video-modal-overlay .video-modal-content {
+    position: relative;
+    background: rgba(20, 20, 20, 0.98);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 16px;
+    width: 95vw;
+    max-width: 1400px;
+    height: 85vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+}
+
+.video-modal-overlay .video-modal-header {
+    background: rgba(10, 10, 10, 0.95);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 1rem 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.video-modal-overlay .video-modal-header h3 {
+    color: #e0e0e0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0;
+    padding: 0;
+}
+
+.video-modal-overlay .video-modal-close {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #e0e0e0;
+    font-size: 1.5rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.video-modal-overlay .video-modal-close:hover {
+    background: rgba(255, 68, 68, 0.8);
+    border-color: rgba(255, 68, 68, 1);
+    color: #fff;
+    transform: scale(1.1);
+}
+
+.video-modal-overlay .video-wrapper {
+    position: relative;
+    width: 100%;
+    flex: 1;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.video-modal-overlay .video-wrapper #viewerVideoPlayer {
+    width: 100%;
+    height: 100%;
+}
+
+.video-modal-overlay .video-wrapper #viewerVideoPlayer > div {
+    width: 100%;
+    height: 100%;
+}
+
+/* Plyr specific overrides for viewer mode */
+.video-modal-overlay .plyr {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.video-modal-overlay .plyr__video-wrapper {
+    background: #000;
+}
+
+.video-modal-overlay .plyr__controls {
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
+    padding: 1rem;
+}
+
+.video-modal-overlay .plyr--full-ui input[type=range] {
+    color: #00e676;
+}
+
+.video-modal-overlay .plyr__control--overlaid {
+    background: rgba(0, 230, 118, 0.9);
+    color: #fff;
+    border: none;
+}
+
+.video-modal-overlay .plyr__control--overlaid:hover {
+    background: rgba(0, 230, 118, 1);
+}
+
+.video-modal-overlay .plyr__control:hover {
+    background: rgba(0, 230, 118, 0.2);
+}
+
+.video-modal-overlay .plyr__control.plyr__tab-focus {
+    box-shadow: 0 0 0 3px rgba(0, 230, 118, 0.5);
+}
+
+/* ============================================
+   VIEWER MODE POST INFO BUTTON (PLAIN TEXT STYLED)
+   ============================================ */
+.btn-post-info {
+    background: rgba(0, 0, 0, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    color: #e0e0e0;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 700;
+    font-style: italic;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    line-height: 1;
+}
+
+.btn-post-info:hover {
+    background: rgba(0, 0, 0, 0.95);
+    border-color: rgba(255, 255, 255, 0.6);
+    color: #fff;
+    transform: scale(1.1);
+}
+
+
+/* ============================================
+   VIEWER MODE - STUNNING 2026 REDESIGN
+   ============================================ */
+
+/* Beautiful Gradient Background */
+#viewer-mode {
+    background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #0f0f1e 100%);
+    min-height: 100vh;
+    position: relative;
+    overflow: hidden;
+}
+
+#viewer-mode::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background:
+        radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(255, 122, 0, 0.08) 0%, transparent 50%);
+    pointer-events: none;
+}
+
+/* Page Header - Glassmorphism */
+#viewer-mode .page-header {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 2rem;
+    margin-bottom: 3rem;
+    backdrop-filter: blur(20px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    position: relative;
+    z-index: 1;
+}
+
+#viewer-mode .page-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #ffffff 0%, #a0a0ff 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 0.8rem;
+}
+
+#viewer-mode .page-subtitle {
+    font-size: 1.1rem;
+    color: #b0b0b0;
+}
+
+/* Loading State */
+#publicContentLoading {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: #888;
+    font-size: 1.2rem;
+}
+
+/* Content Container */
+#publicContentContainer {
+    position: relative;
+    z-index: 1;
+}
+
+/* ============================================
+   VIEWER MODE - HEADING CARDS - 3D DEPTH EFFECT
+   ============================================ */
+#viewer-mode .heading-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 24px;
+    padding: 2.5rem;
+    margin-bottom: 3rem;
+    backdrop-filter: blur(20px);
+    box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+#viewer-mode .heading-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #7877c6, #ff7a00, #7877c6);
+    background-size: 200% 100%;
+    animation: gradientShift 3s ease infinite;
+}
+
+@keyframes gradientShift {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+}
+
+#viewer-mode .heading-card:hover {
+    transform: translateY(-8px);
+    box-shadow:
+        0 20px 60px rgba(120, 119, 198, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.25);
+}
+
+#viewer-mode .heading-card-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 1.5rem;
+    letter-spacing: -0.02em;
+    text-shadow: 0 2px 10px rgba(255, 255, 255, 0.1);
+}
+
+#viewer-mode .heading-card-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    margin-bottom: 2rem;
+}
+
+#viewer-mode .heading-meta-item {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.6rem 1.2rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    font-size: 0.95rem;
+    color: #c0c0c0;
+}
+
+#viewer-mode .heading-meta-icon {
+    font-size: 1.2rem;
+}
+
+/* ============================================
+   VIEWER MODE - SUBHEADINGS - ELEGANT NESTED DESIGN
+   ============================================ */
+#viewer-mode .subheadings-list {
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+#viewer-mode .subheading-item {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 1.5rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#viewer-mode .subheading-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+    transform: translateX(8px);
+    border-color: rgba(120, 119, 198, 0.4);
+}
+
+#viewer-mode .subheading-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+#viewer-mode .subheading-number {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #7877c6;
+    min-width: 40px;
+    text-shadow: 0 0 10px rgba(120, 119, 198, 0.5);
+}
+
+#viewer-mode .subheading-name {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #e0e0e0;
+    flex: 1;
+}
+
+/* ============================================
+   VIEWER MODE - SMALL HEADINGS - COMPACT & MODERN
+   ============================================ */
+#viewer-mode .smallheadings-list {
+    margin-top: 1.5rem;
+    margin-left: 2.5rem;
+    padding-left: 1.5rem;
+    border-left: 3px solid rgba(120, 119, 198, 0.3);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+#viewer-mode .smallheading-item {
+    background: rgba(120, 119, 198, 0.08);
+    border: 1px solid rgba(120, 119, 198, 0.2);
+    border-radius: 12px;
+    padding: 1rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: all 0.3s ease;
+}
+
+#viewer-mode .smallheading-item:hover {
+    background: rgba(120, 119, 198, 0.15);
+    border-color: rgba(120, 119, 198, 0.4);
+    transform: translateX(8px);
+}
+
+#viewer-mode .smallheading-content {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex: 1;
+}
+
+#viewer-mode .smallheading-number {
+    font-weight: 700;
+    color: #9d9ce6;
+    font-size: 1rem;
+    min-width: 35px;
+}
+
+#viewer-mode .smallheading-name {
+    color: #d0d0d0;
+    font-size: 1.05rem;
+    font-weight: 500;
+}
+
+/* ============================================
+   VIEWER MODE - VIDEO POSTS - NETFLIX-STYLE CARDS
+   ============================================ */
+#viewer-mode .posts-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 2rem;
+    margin-top: 2rem;
+    padding: 1rem 0;
+}
+
+#viewer-mode .post-item {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    transform-style: preserve-3d;
+}
+
+#viewer-mode .post-item::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(120, 119, 198, 0.1), rgba(255, 122, 0, 0.1));
+    opacity: 0;
+    transition: opacity 0.4s;
+    z-index: 0;
+}
+
+#viewer-mode .post-item:hover::before {
+    opacity: 1;
+}
+
+#viewer-mode .post-item:hover {
+    transform: translateY(-12px) scale(1.05);
+    box-shadow:
+        0 20px 40px rgba(0, 0, 0, 0.5),
+        0 0 0 1px rgba(120, 119, 198, 0.5),
+        0 0 30px rgba(120, 119, 198, 0.3);
+    border-color: rgba(120, 119, 198, 0.6);
+    z-index: 10;
+}
+
+#viewer-mode .post-video-thumbnail {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16/9;
+    overflow: hidden;
+    background: #000;
+}
+
+#viewer-mode .post-video-thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#viewer-mode .post-item:hover .post-video-thumbnail img {
+    transform: scale(1.1);
+}
+
+/* Play Overlay */
+#viewer-mode .video-play-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 70px;
+    height: 70px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    color: #000;
+    opacity: 0;
+    transition: all 0.3s ease;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+#viewer-mode .post-item:hover .video-play-overlay {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.1);
+}
+
+/* Title Overlay */
+#viewer-mode .post-title-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 1.5rem 1rem 1rem;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.95), transparent);
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 600;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.3s ease;
+    line-height: 1.4;
+}
+
+#viewer-mode .post-item:hover .post-title-overlay {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Post Header (Info Button Container) */
+#viewer-mode .post-header {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 2;
+}
+
+#viewer-mode .btn-post-info {
+    background: rgba(0, 0, 0, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    color: #e0e0e0;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1.1rem;
+    font-weight: 700;
+    font-style: italic;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    transform: scale(0.8);
+}
+
+#viewer-mode .post-item:hover .btn-post-info {
+    opacity: 1;
+    transform: scale(1);
+}
+
+#viewer-mode .btn-post-info:hover {
+    background: rgba(120, 119, 198, 0.95);
+    border-color: rgba(120, 119, 198, 1);
+    color: #fff;
+    transform: scale(1.15) rotate(10deg);
+    box-shadow: 0 0 20px rgba(120, 119, 198, 0.6);
+}
+
+/* ============================================
+   VIEWER MODE - RESPONSIVE DESIGN
+   ============================================ */
+@media (max-width: 768px) {
+    #viewer-mode .page-title {
+        font-size: 2rem;
+    }
+
+    #viewer-mode .heading-card {
+        padding: 1.5rem;
+    }
+
+    #viewer-mode .heading-card-title {
+        font-size: 1.5rem;
+    }
+
+
+  /* ============================================
+   VIEWER MODE - REMOVE GREEN BORDER (NUCLEAR FIX)
+   ============================================ */
+#viewer-mode .posts-container,
+#viewer-mode .subheadings-list .posts-container,
+#viewer-mode .smallheadings-list .posts-container,
+#viewer-mode [class*="posts"] {
+    border-left: none !important;
+    border-right: none !important;
+    border-top: none !important;
+    border-bottom: none !important;
+    border: 0 !important;
+    padding-left: 0 !important;
+    margin-left: 0 !important;
+}
+
+/* ============================================
+   VIEWER MODE - VIDEO POSTS - NETFLIX-STYLE CARDS
+   ============================================ */
+#viewer-mode .posts-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 2rem;
+    margin-top: 2rem;
+    padding: 1rem 0 !important;
+}
+
+
+
+    #viewer-mode .smallheadings-list {
+        margin-left: 1rem;
+        padding-left: 1rem;
+    }
+}
+
+

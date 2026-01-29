@@ -193,19 +193,31 @@
             </div>
         </section>
 
-        <!-- Viewer Mode Page -->
-        <section class="page-section" id="viewer-mode">
-            <div class="page-header">
-                <h1 class="page-title">Viewer Mode</h1>
-                <p class="page-subtitle">Preview your vault as a guest would see it</p>
-            </div>
+     <!-- Viewer Mode Page -->
+<section class="page-section" id="viewer-mode">
+    <div class="page-header">
+        <h1 class="page-title">Viewer Mode</h1>
+        <p class="page-subtitle">Preview your vault as a guest would see it (public content only)</p>
+    </div>
 
-            <div class="placeholder-section">
-                <div class="placeholder-icon">👁️</div>
-                <h3 class="placeholder-title">Viewer Preview</h3>
-                <p class="placeholder-text">Guest viewing preview coming soon...</p>
-            </div>
-        </section>
+    <!-- Public Content Container -->
+    <div id="publicContentContainer" class="headings-container"></div>
+
+    <!-- Placeholder (shown when no public content) -->
+    <div class="placeholder-section" id="noPublicContentPlaceholder" style="margin-top: 2rem; display: none;">
+        <div class="placeholder-icon">🔒</div>
+        <h3 class="placeholder-title">No Public Content</h3>
+        <p class="placeholder-text">All content is currently set to private. Make some content public to preview here.</p>
+    </div>
+
+    <!-- Loading State -->
+    <div class="placeholder-section" id="publicContentLoading" style="margin-top: 2rem; display: none;">
+        <div class="placeholder-icon">⏳</div>
+        <h3 class="placeholder-title">Loading...</h3>
+        <p class="placeholder-text">Fetching public content...</p>
+    </div>
+</section>
+
 
         <!-- Heatmap Page -->
         <section class="page-section" id="heatmap">
@@ -924,6 +936,20 @@
                     <span>Delete Post</span>
                 </button>
             </div>
+        </div>
+    </div>
+</div>
+
+
+    <!-- VIDEO MODAL (For Viewer Mode) -->
+<div class="video-modal-overlay" id="viewerVideoModal">
+    <div class="video-modal-content">
+        <div class="video-modal-header">
+            <h3 id="viewerVideoTitle">Video Title</h3>
+            <button class="video-modal-close" onclick="closeViewerVideo()">✕</button>
+        </div>
+        <div class="video-wrapper">
+            <div id="viewerVideoPlayer"></div>
         </div>
     </div>
 </div>

@@ -1407,3 +1407,276 @@ document.addEventListener('keydown', function(e) {
     }
 });
 
+// ============================================
+// VIEWER MODE - PUBLIC CONTENT DISPLAY
+// ============================================
+
+// Modified showPage to load public content when viewer mode is opened
+const originalShowPage = showPage;
+showPage = function(pageId) {
+    originalShowPage(pageId);
+
+    if (pageId === 'viewer-mode') {
+        loadPublicContent();
+    }
+};
+
+// Load public content from API
+async function loadPublicContent() {
+    const container = document.getElementById('publicContentContainer');
+    const placeholder = document.getElementById('noPublicContentPlaceholder');
+    const loading = document.getElementById('publicContentLoading');
+
+    // Show loading
+    container.innerHTML = '';
+    placeholder.style.display = 'none';
+    loading.style.display = 'block';
+
+    try {
+        const response = await fetch('/api/public-content', {
+            credentials: 'include'
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to fetch public content');
+        }
+
+        const data = await response.json();
+
+        loading.style.display = 'none';
+
+        if (data.success && data.content.length > 0) {
+            displayPublicContent(data.content);
+        } else {
+            container.innerHTML = '';
+            placeholder.style.display = 'block';
+        }
+    } catch (error) {
+        console.error('Failed to load public content:', error);
+        loading.style.display = 'none';
+        placeholder.style.display = 'block';
+    }
+}
+
+// Display public content hierarchically (READ-ONLY - NO BADGES, ONLY DATE)
+function displayPublicContent(content) {
+    const container = document.getElementById('publicContentContainer');
+    let html = '';
+
+    content.forEach(heading => {
+        // Extract only the date (remove time)
+        const dateOnly = heading.created_at.split(' ').slice(0, 3).join(' '); // "January 29, 2026"
+
+        html += `
+            <div class="heading-card">
+                <h3 class="heading-card-title">${escapeHtml(heading.name)}</h3>
+
+                <div class="heading-card-meta">
+                    <div class="heading-meta-item">
+                        <span class="heading-meta-icon">📅</span>
+                        <span>${dateOnly}</span>
+                    </div>
+                </div>
+        `;
+
+        if (heading.subheadings && heading.subheadings.length > 0) {
+            html += '<div class="subheadings-list">';
+
+            heading.subheadings.forEach(subheading => {
+                html += `
+                    <div class="subheading-item">
+                        <div class="subheading-header">
+                            <span class="subheading-number">${subheading.number})</span>
+                            <span class="subheading-name">${escapeHtml(subheading.name)}</span>
+                        </div>
+                `;
+
+                // Check if subheading has small headings
+                if (subheading.smallheadings && subheading.smallheadings.length > 0) {
+                    html += '<div class="smallheadings-list">';
+
+                    subheading.smallheadings.forEach(smallheading => {
+                        html += `
+                            <div class="smallheading-item">
+                                <div class="smallheading-content">
+                                    <span class="smallheading-number">${smallheading.number})</span>
+                                    <span class="smallheading-name">${escapeHtml(smallheading.name)}</span>
+                                </div>
+                            </div>
+                        `;
+
+                        // Display posts under small heading
+                        if (smallheading.posts && smallheading.posts.length > 0) {
+                            html += displayPublicPosts(smallheading.posts);
+                        }
+                    });
+
+                    html += '</div>';
+                } else if (subheading.posts && subheading.posts.length > 0) {
+                    // Display posts directly under subheading
+                    html += displayPublicPosts(subheading.posts);
+                }
+
+                html += '</div>';
+            });
+
+            html += '</div>';
+        }
+
+        html += '</div>';
+    });
+
+    container.innerHTML = html;
+}
+
+// Display public posts (video cards - WITH INFO BUTTON)
+function displayPublicPosts(posts) {
+    let html = '<div class="posts-container">';
+
+    posts.forEach(post => {
+        // Extract only the date (remove time)
+        const dateOnly = post.created_at.split(' ').slice(0, 3).join(' '); // "January 29, 2026"
+
+        html += `
+            <div class="post-item" onclick="playViewerVideo('${post.video_id}', '${escapeHtml(post.title)}')">
+                <div class="post-video-thumbnail">
+                    <img src="${post.thumbnail_url}" alt="${escapeHtml(post.title)}" onerror="this.src='https://img.youtube.com/vi/${post.video_id}/hqdefault.jpg'">
+                    <div class="video-play-overlay">▶</div>
+                    <div class="post-title-overlay">${escapeHtml(post.title)}</div>
+                </div>
+                <div class="post-header">
+                    <button class="btn-post-info" onclick="event.stopPropagation(); showViewerPostInfo('${escapeHtml(post.title)}', '${escapeHtml(post.description || 'No description available')}', '${dateOnly}')">i</button>
+                </div>
+            </div>
+        `;
+    });
+
+    html += '</div>';
+    return html;
+}
+
+
+// Show post info popup (for viewer mode)
+function showViewerPostInfo(title, description, date) {
+    customAlert(
+        `📹 ${title}\n\n${description}\n\n📅 Created: ${date}`,
+        'Video Information',
+        'info'
+    );
+}
+
+
+
+
+// ============================================
+// VIEWER MODE VIDEO PLAYER (FIXED - MATCHES MANAGE CONTENT)
+// ============================================
+
+let viewerPlayer = null;
+
+function playViewerVideo(videoId, title) {
+    // Close existing player if any
+    if (viewerPlayer) {
+        viewerPlayer.destroy();
+        viewerPlayer = null;
+    }
+
+    const modal = document.getElementById('viewerVideoModal');
+    const titleEl = document.getElementById('viewerVideoTitle');
+    const playerContainer = document.getElementById('viewerVideoPlayer');
+
+    titleEl.textContent = title;
+
+    // Create the exact same structure as manage content player
+    playerContainer.innerHTML = `<div id="temp-viewer-player" data-plyr-provider="youtube" data-plyr-embed-id="${videoId}"></div>`;
+
+    // Prevent body scroll
+    document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.width = '100%';
+
+    // Show modal
+    modal.classList.add('active');
+
+    // Initialize Plyr with SAME config as manage content
+    setTimeout(() => {
+        const playerElement = document.getElementById('temp-viewer-player');
+        if (playerElement && typeof Plyr !== 'undefined') {
+            viewerPlayer = new Plyr(playerElement, {
+                controls: [
+                    'play-large',
+                    'play',
+                    'progress',
+                    'current-time',
+                    'duration',
+                    'mute',
+                    'volume',
+                    'settings',
+                    'fullscreen'
+                ],
+                youtube: {
+                    noCookie: true,
+                    rel: 0,
+                    showinfo: 0,
+                    iv_load_policy: 3,
+                    modestbranding: 1,
+                    playsinline: 1
+                },
+                hideControls: false,
+                keyboard: { focused: true, global: true },
+                tooltips: { controls: true, seek: true },
+                ratio: '16:9',
+                fullscreen: {
+                    enabled: true,
+                    fallback: true,
+                    iosNative: true,
+                    container: null
+                },
+                autoplay: true,
+                muted: false
+            });
+
+            // Auto-play when ready
+            viewerPlayer.on('ready', () => {
+                viewerPlayer.play().catch(e => {
+                    console.log('Autoplay prevented:', e);
+                });
+            });
+
+            // Error handling
+            viewerPlayer.on('error', (error) => {
+                console.error('Plyr error:', error);
+            });
+        } else {
+            console.error('Plyr not available or element not found');
+        }
+    }, 100);
+}
+
+function closeViewerVideo() {
+    const modal = document.getElementById('viewerVideoModal');
+
+    // Destroy player
+    if (viewerPlayer) {
+        try {
+            viewerPlayer.destroy();
+        } catch (e) {
+            console.error('Error destroying player:', e);
+        }
+        viewerPlayer = null;
+    }
+
+    // Hide modal
+    modal.classList.remove('active');
+
+    // Restore body scroll (IMPORTANT!)
+    document.body.style.overflow = '';
+    document.body.style.position = '';
+    document.body.style.width = '';
+
+    // Clear player container
+    document.getElementById('viewerVideoPlayer').innerHTML = '';
+}
+
+
+
