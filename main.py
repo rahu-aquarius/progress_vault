@@ -731,6 +731,170 @@ async def delete_heading(
         )
 
 
+
+# ============= PUBLIC CONTENT API (FOR VIEWER MODE & GUEST VIEWING) =============
+
+@app.get("/api/public-content")
+async def get_public_content(db: Session = Depends(get_db)):
+    """
+    Get hierarchical content with cascading visibility filtering.
+    Rules:
+    - Private heading → hide everything inside
+    - Private subheading → hide everything inside (even if public)
+    - Private small heading → hide posts inside
+    - Private post → hide that specific post
+    """
+    try:
+        # Get all main headings (no parent)
+        main_headings = db.query(Heading).filter(
+            Heading.heading_type == "heading",
+            Heading.parent_heading_id == None
+        ).order_by(Heading.created_at.desc()).all()
+
+        result = []
+
+        for heading in main_headings:
+            # RULE 1: Skip if heading is private
+            if heading.visibility == "private":
+                continue
+
+            # Heading is public, process it
+            heading_data = {
+                "id": heading.id,
+                "type": "heading",
+                "name": heading.heading_name,
+                "visibility": heading.visibility,
+                "created_at": (heading.created_at + NEPAL_OFFSET).strftime("%B %d, %Y %I:%M %p"),
+                "subheadings": []
+            }
+
+            # Get subheadings under this heading
+            subheadings = db.query(Heading).filter(
+                Heading.heading_type == "subheading",
+                Heading.parent_heading_id == heading.id
+            ).order_by(Heading.subheading_number).all()
+
+            for subheading in subheadings:
+                # RULE 2: Skip if subheading is private
+                if subheading.visibility == "private":
+                    continue
+
+                # Subheading is public, process it
+                subheading_data = {
+                    "id": subheading.id,
+                    "type": "subheading",
+                    "name": subheading.heading_name,
+                    "number": subheading.subheading_number,
+                    "visibility": subheading.visibility,
+                    "created_at": (subheading.created_at + NEPAL_OFFSET).strftime("%B %d, %Y %I:%M %p"),
+                    "smallheadings": [],
+                    "posts": []
+                }
+
+                # Get small headings under this subheading
+                smallheadings = db.query(Heading).filter(
+                    Heading.heading_type == "smallheading",
+                    Heading.parent_heading_id == subheading.id
+                ).order_by(Heading.subheading_number).all()
+
+                if smallheadings:
+                    # Has small headings - process them
+                    for smallheading in smallheadings:
+                        # RULE 3: Skip if small heading is private
+                        if smallheading.visibility == "private":
+                            continue
+
+                        # Small heading is public, get its posts
+                        posts = db.query(Post).filter(
+                            Post.parent_heading_id == smallheading.id
+                        ).order_by(Post.created_at.desc()).all()
+
+                        # Filter out private posts (RULE 4)
+                        public_posts = []
+                        for post in posts:
+                            if post.visibility == "public":
+                                # Extract YouTube video ID
+                                video_id = ""
+                                if "v=" in post.video_url:
+                                    video_id = post.video_url.split("v=")[-1].split("&")[0]
+                                elif "youtu.be/" in post.video_url:
+                                    video_id = post.video_url.split("youtu.be/")[-1].split("?")[0]
+
+                                thumbnail_url = f"https://img.youtube.com/vi/{video_id}/maxresdefault.jpg" if video_id else ""
+
+                                public_posts.append({
+                                    "id": post.id,
+                                    "title": post.post_title,
+                                    "video_url": post.video_url,
+                                    "video_id": video_id,
+                                    "thumbnail_url": thumbnail_url,
+                                    "description": post.post_description,
+                                    "visibility": post.visibility,
+                                    "created_at": (post.created_at + NEPAL_OFFSET).strftime("%B %d, %Y %I:%M %p")
+                                })
+
+                        # Only add small heading if it has public posts
+                        if public_posts:
+                            smallheading_data = {
+                                "id": smallheading.id,
+                                "type": "smallheading",
+                                "name": smallheading.heading_name,
+                                "number": smallheading.subheading_number,
+                                "visibility": smallheading.visibility,
+                                "created_at": (smallheading.created_at + NEPAL_OFFSET).strftime("%B %d, %Y %I:%M %p"),
+                                "posts": public_posts
+                            }
+                            subheading_data["smallheadings"].append(smallheading_data)
+
+                else:
+                    # No small headings - get posts directly under subheading
+                    posts = db.query(Post).filter(
+                        Post.parent_heading_id == subheading.id
+                    ).order_by(Post.created_at.desc()).all()
+
+                    # Filter out private posts (RULE 4)
+                    for post in posts:
+                        if post.visibility == "public":
+                            # Extract YouTube video ID
+                            video_id = ""
+                            if "v=" in post.video_url:
+                                video_id = post.video_url.split("v=")[-1].split("&")[0]
+                            elif "youtu.be/" in post.video_url:
+                                video_id = post.video_url.split("youtu.be/")[-1].split("?")[0]
+
+                            thumbnail_url = f"https://img.youtube.com/vi/{video_id}/maxresdefault.jpg" if video_id else ""
+
+                            subheading_data["posts"].append({
+                                "id": post.id,
+                                "title": post.post_title,
+                                "video_url": post.video_url,
+                                "video_id": video_id,
+                                "thumbnail_url": thumbnail_url,
+                                "description": post.post_description,
+                                "visibility": post.visibility,
+                                "created_at": (post.created_at + NEPAL_OFFSET).strftime("%B %d, %Y %I:%M %p")
+                            })
+
+                # Only add subheading if it has content (small headings or posts)
+                if subheading_data["smallheadings"] or subheading_data["posts"]:
+                    heading_data["subheadings"].append(subheading_data)
+
+            # Only add heading if it has subheadings with content
+            if heading_data["subheadings"]:
+                result.append(heading_data)
+
+        return JSONResponse(content={
+            "success": True,
+            "content": result
+        })
+
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": str(e)}
+        )
+
+
 # ============= POST ROUTES =============
 
 @app.post("/admin/post/create")
