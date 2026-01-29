@@ -296,6 +296,43 @@ async def check_session(user=Depends(get_current_user)):
     return {"valid": True, "expires_in": int(exp_timestamp - current_timestamp)}
 
 
+# ============================================
+# DASHBOARD STATS API - Get video/post counts
+# ============================================
+@app.get("/api/stats")
+async def get_stats(db: Session = Depends(get_db), user=Depends(get_current_user)):
+    """Get dashboard statistics for admin"""
+    if not require_auth(user, required_role='admin'):
+        return JSONResponse(status_code=401, content={'error': 'Unauthorized'})
+
+    try:
+        # Count all posts (these are your "videos")
+        total_posts = db.query(Post).count()
+
+        # Count by visibility
+        public_posts = db.query(Post).filter(Post.visibility == 'public').count()
+        private_posts = db.query(Post).filter(Post.visibility == 'private').count()
+
+        # Count headings
+        total_headings = db.query(Heading).filter(Heading.heading_type == 'heading').count()
+        total_subheadings = db.query(Heading).filter(Heading.heading_type == 'subheading').count()
+        total_smallheadings = db.query(Heading).filter(Heading.heading_type == 'smallheading').count()
+
+        return JSONResponse(content={
+            'success': True,
+            'stats': {
+                'total_posts': total_posts,
+                'public_posts': public_posts,
+                'private_posts': private_posts,
+                'total_headings': total_headings,
+                'total_subheadings': total_subheadings,
+                'total_smallheadings': total_smallheadings
+            }
+        })
+    except Exception as e:
+        return JSONResponse(status_code=500, content={'success': False, 'error': str(e)})
+
+
 # ============= ADMIN API ROUTES =============
 
 @app.post("/admin/toggle-guest-access")

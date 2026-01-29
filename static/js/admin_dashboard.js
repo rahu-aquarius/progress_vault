@@ -1,6 +1,47 @@
 // admin_dashboard.js
 
 // ============================================
+// DASHBOARD STATS - VIDEO COUNT FIX
+// ============================================
+async function loadDashboardStats() {
+    try {
+        const response = await fetch('/api/stats', {
+            credentials: 'include'
+        });
+
+        if (!response.ok) {
+            console.error('❌ Failed to fetch stats');
+            return;
+        }
+
+        const data = await response.json();
+
+        if (data.success) {
+            updateStatsDisplay(data.stats);
+        }
+    } catch (error) {
+        console.error('❌ Error loading stats:', error);
+    }
+}
+
+function updateStatsDisplay(stats) {
+    // Update the video count in the System Statistics card
+    const statsCards = document.querySelectorAll('.control-card');
+    if (statsCards.length > 1) {
+        const statsGrid = statsCards[1].querySelector('div[style*="grid"]');
+        if (statsGrid) {
+            const videoCountDiv = statsGrid.querySelector('div:first-child > div:first-child');
+            if (videoCountDiv) {
+                videoCountDiv.textContent = stats.total_posts;
+                console.log('✅ Video count updated to:', stats.total_posts);
+            }
+        }
+    }
+
+    console.log('📊 All stats:', stats);
+}
+
+// ============================================
 // CUSTOM ALERT & CONFIRM SYSTEM
 // ============================================
 
@@ -193,6 +234,12 @@ function showPage(pageId) {
 // ============================================
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Load dashboard stats immediately
+    loadDashboardStats();
+
+    // Refresh stats every 10 seconds
+    setInterval(loadDashboardStats, 10000);
+
     const guestToggle = document.getElementById('guestToggle');
     if (guestToggle) {
         guestToggle.addEventListener('change', async (e) => {
@@ -1073,7 +1120,7 @@ function displayPosts(headingId, posts) {
                     </div>
                     <div class="post-header">
                         <span class="post-visibility ${post.visibility}">${post.visibility.toUpperCase()}</span>
-                        <button class="btn-post-more" onclick="showPostMorePopup(event, ${post.id}, ${headingId}, '${post.created_at}', '${escapeHtml(post.post_description || '')}')">⋮</button>
+                        <button class="btn-post-more" onclick="showPostMorePopup(event, ${post.id}, ${headingId}, '${post.created_at}', '${escapeHtml(post.post_description)}')">⋮</button>
                     </div>
                 </div>
             `;
@@ -1082,7 +1129,7 @@ function displayPosts(headingId, posts) {
 
     html += `
         <button class="btn-add-post" onclick="openCreatePost(${headingId})">
-            <span>➕</span>
+            <span>+</span>
             <span>Add Post</span>
         </button>
     </div>`;
@@ -1198,8 +1245,7 @@ async function openEditPost(postId, headingId) {
             document.getElementById('editPostId').value = data.post.id;
             document.getElementById('editPostTitle').value = data.post.post_title;
             document.getElementById('editPostVideoUrl').value = data.post.video_url;
-            document.getElementById('editPostDescription').value = data.post.post_description || '';
-
+            document.getElementById('editPostDescription').value = data.post.post_description;
             document.getElementById('editPostCreatedDate').textContent = data.post.created_at.split(' ').slice(0, 3).join(' ');
             document.getElementById('editPostCreatedTime').textContent = data.post.created_at.split(' ').slice(3).join(' ');
 
@@ -1283,9 +1329,7 @@ async function deletePost(postId, headingId) {
     }
 }
 
-// ============================================
 // VIDEO POST FUNCTIONS
-// ============================================
 
 // Extract YouTube Video ID
 function extractYouTubeID(url) {
@@ -1330,23 +1374,16 @@ function playVideo(videoId, title) {
     document.body.style.position = 'fixed';
     document.body.style.width = '100%';
 
-    setTimeout(() => modal.classList.add('active'), 10);
+    setTimeout(() => {
+        modal.classList.add('active');
+    }, 10);
 
     // Initialize Plyr with better sizing
     setTimeout(() => {
         const playerElement = document.getElementById('player');
         if (playerElement) {
             currentPlayer = new Plyr(playerElement, {
-                controls: [
-                    'play-large',
-                    'play',
-                    'progress',
-                    'current-time',
-                    'mute',
-                    'volume',
-                    'settings',
-                    'fullscreen'
-                ],
+                controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'settings', 'fullscreen'],
                 youtube: {
                     noCookie: true,
                     rel: 0,
@@ -1371,7 +1408,6 @@ function playVideo(videoId, title) {
     }, 100);
 }
 
-
 // Close Video Modal (FIXED SCROLL RESTORE)
 function closeVideoModal(element) {
     const modal = element.closest('.video-modal');
@@ -1390,9 +1426,10 @@ function closeVideoModal(element) {
     document.body.style.position = '';
     document.body.style.width = '';
 
-    setTimeout(() => modal.remove(), 300);
+    setTimeout(() => {
+        modal.remove();
+    }, 300);
 }
-
 
 // Close video modal on ESC key
 document.addEventListener('keydown', function(e) {
@@ -1407,15 +1444,12 @@ document.addEventListener('keydown', function(e) {
     }
 });
 
-// ============================================
 // VIEWER MODE - PUBLIC CONTENT DISPLAY
-// ============================================
 
 // Modified showPage to load public content when viewer mode is opened
 const originalShowPage = showPage;
 showPage = function(pageId) {
     originalShowPage(pageId);
-
     if (pageId === 'viewer-mode') {
         loadPublicContent();
     }
@@ -1470,7 +1504,6 @@ function displayPublicContent(content) {
         html += `
             <div class="heading-card">
                 <h3 class="heading-card-title">${escapeHtml(heading.name)}</h3>
-
                 <div class="heading-card-meta">
                     <div class="heading-meta-item">
                         <span class="heading-meta-icon">📅</span>
@@ -1529,7 +1562,7 @@ function displayPublicContent(content) {
     container.innerHTML = html;
 }
 
-// Display public posts (video cards - WITH INFO BUTTON)
+// Display public posts (video cards) - WITH INFO BUTTON
 function displayPublicPosts(posts) {
     let html = '<div class="posts-container">';
 
@@ -1555,23 +1588,12 @@ function displayPublicPosts(posts) {
     return html;
 }
 
-
-// Show post info popup (for viewer mode)
+// Show post info popup for viewer mode
 function showViewerPostInfo(title, description, date) {
-    customAlert(
-        `📹 ${title}\n\n${description}\n\n📅 Created: ${date}`,
-        'Video Information',
-        'info'
-    );
+    customAlert(`${title}\n\n${description}\n\nCreated: ${date}`, 'Video Information', 'info');
 }
 
-
-
-
-// ============================================
 // VIEWER MODE VIDEO PLAYER (FIXED - MATCHES MANAGE CONTENT)
-// ============================================
-
 let viewerPlayer = null;
 
 function playViewerVideo(videoId, title) {
@@ -1603,17 +1625,7 @@ function playViewerVideo(videoId, title) {
         const playerElement = document.getElementById('temp-viewer-player');
         if (playerElement && typeof Plyr !== 'undefined') {
             viewerPlayer = new Plyr(playerElement, {
-                controls: [
-                    'play-large',
-                    'play',
-                    'progress',
-                    'current-time',
-                    'duration',
-                    'mute',
-                    'volume',
-                    'settings',
-                    'fullscreen'
-                ],
+                controls: ['play-large', 'play', 'progress', 'current-time', 'duration', 'mute', 'volume', 'settings', 'fullscreen'],
                 youtube: {
                     noCookie: true,
                     rel: 0,
@@ -1623,8 +1635,14 @@ function playViewerVideo(videoId, title) {
                     playsinline: 1
                 },
                 hideControls: false,
-                keyboard: { focused: true, global: true },
-                tooltips: { controls: true, seek: true },
+                keyboard: {
+                    focused: true,
+                    global: true
+                },
+                tooltips: {
+                    controls: true,
+                    seek: true
+                },
                 ratio: '16:9',
                 fullscreen: {
                     enabled: true,
@@ -1638,9 +1656,7 @@ function playViewerVideo(videoId, title) {
 
             // Auto-play when ready
             viewerPlayer.on('ready', () => {
-                viewerPlayer.play().catch(e => {
-                    console.log('Autoplay prevented:', e);
-                });
+                viewerPlayer.play().catch(e => console.log('Autoplay prevented:', e));
             });
 
             // Error handling
@@ -1677,6 +1693,3 @@ function closeViewerVideo() {
     // Clear player container
     document.getElementById('viewerVideoPlayer').innerHTML = '';
 }
-
-
-
